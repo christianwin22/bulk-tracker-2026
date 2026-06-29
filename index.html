@@ -276,7 +276,26 @@ function renderTimerSection() {
 }
 
 // ── SUPABASE ───────────────────────────────────────────────────────────────
-let _sb = null, _userId = null;
+let _sb = null, _userId = null, _userEmail = "", _userInitials = "?";
+
+function toggleProfileMenu() {
+  const m = document.getElementById("profile-menu");
+  if (m) m.style.display = m.style.display === "none" ? "block" : "none";
+}
+document.addEventListener("click", e => {
+  const m = document.getElementById("profile-menu");
+  const av = document.getElementById("avatar-btn");
+  if (m && m.style.display !== "none" && !m.contains(e.target) && e.target !== av) {
+    m.style.display = "none";
+  }
+});
+
+async function doSignOut() {
+  if (_sb) await _sb.auth.signOut();
+  _userId = null; _userEmail = ""; _userInitials = "?";
+  render(); renderSyncBadge();
+}
+
 function sbReady() { return _sb && _userId; }
 
 async function sbInit() {
@@ -289,6 +308,8 @@ async function sbInit() {
     const {data:{session}} = await _sb.auth.getSession();
     if (session && !session.user.is_anonymous) {
       _userId = session.user.id;
+      _userEmail = session.user.email || "";
+      _userInitials = _userEmail ? _userEmail.slice(0,2).toUpperCase() : "?";
     }
   } catch(e) { console.warn("Supabase init failed:",e); }
 }
@@ -326,11 +347,13 @@ async function sbSave() {
 }
 
 function renderSyncBadge() {
-  const el = document.getElementById("sync-badge"); if (!el) return;
-  if (!_userId) { el.textContent = "Sign in to sync"; return; }
-  const map = {idle:["",""],syncing:["↑ syncing","#ff9f0a"],synced:["✓ synced","#34c759"],error:["⚠ error","#ff3b30"]};
-  const [t,c] = map[S.syncStatus]||["",""];
-  el.textContent = t; el.style.color = c;
+  const map = {idle:"",syncing:"↑",synced:"✓",error:"⚠"};
+  const col = {idle:"",syncing:"#ff9f0a",synced:"#34c759",error:"#ff3b30"};
+  const el = document.getElementById("w-saved-badge");
+  if (el && _userId) {
+    const t = map[S.syncStatus]||"";
+    if (t) { el.style.display=""; el.textContent = t+" synced"; el.style.color = col[S.syncStatus]; }
+  }
 }
 
 // ── LOCAL STORAGE ──────────────────────────────────────────────────────────
@@ -504,13 +527,24 @@ function render() {
 }
 
 function renderTopBar() {
-  const syncTap = _userId ? "" : "onclick=\"showLoginScreen()\" title=\"Sign in to sync\"";
   return `<div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:rgba(240,244,248,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:50;border-bottom:1px solid var(--border);">
     <div>
       <div style="font-size:20px;font-weight:800;color:var(--txt);letter-spacing:-.4px;">${{workout:"Workout",nutrition:"Nutrition",progress:"Progress"}[S.tab]}</div>
       <div style="font-size:11px;color:var(--sub);margin-top:1px;">Target 68–70 kg · Jun–Jul 2026</div>
     </div>
-    <span id="sync-badge" ${syncTap} style="font-size:11px;font-weight:600;cursor:${_userId?"default":"pointer"};padding:4px 8px;border-radius:6px;${_userId?"":"background:var(--acc-soft);color:var(--acc);"}"></span>
+    ${_userId
+      ? `<div id="avatar-btn" onclick="toggleProfileMenu()" style="width:30px;height:30px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;">${_userInitials}</div>`
+      : `<button onclick="showLoginScreen()" style="padding:5px 12px;border-radius:7px;background:var(--acc-soft);color:var(--acc);border:none;font-size:12px;font-weight:700;cursor:pointer;">Sign in</button>`
+    }
+  </div>
+  <div id="profile-menu" style="display:none;position:fixed;top:54px;right:12px;background:var(--card);border:0.5px solid var(--border);border-radius:12px;width:210px;z-index:200;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12);">
+    <div style="padding:12px 14px;border-bottom:0.5px solid var(--border);">
+      <div style="font-size:13px;font-weight:700;color:var(--txt);">${_userId ? _userEmail : ""}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:1px;">Syncing to cloud</div>
+    </div>
+    <div onclick="doSignOut()" style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#ff3b30;">
+      <span style="font-size:15px;">↩</span> Sign out
+    </div>
   </div>`;
 }
 
@@ -522,9 +556,10 @@ function renderWorkoutTab() {
   const pct = tot>0?Math.round(done/tot*100):0;
   const areas = slots.map(s=>s.area).join(" · ");
 
-  // Session chips: prev + today + calendar
+  // Session chips: prev + today + next + calendar
   const idx = SESSIONS.indexOf(S.wDate);
   const prevDate = idx>0 ? SESSIONS[idx-1] : null;
+  const nextDate = idx>=0 && idx<SESSIONS.length-1 ? SESSIONS[idx+1] : null;
   const hasSaved = !!S.sessions[S.wDate];
 
   return `
@@ -549,15 +584,19 @@ function renderWorkoutTab() {
     </div>
   </div>
 
-  <!-- Session chips: prev + today + calendar -->
+  <!-- Session chips: prev + today + next + calendar -->
   <div style="display:flex;gap:6px;align-items:stretch;margin-bottom:12px;">
-    ${prevDate?`<button onclick="wDate('${prevDate}')" style="flex-shrink:0;background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;">
-      <div style="font-size:9px;color:var(--faint);">prev</div>
-      <div style="font-size:12px;font-weight:600;color:var(--sub);">${dayAbbr(prevDate)}${S.sessions[prevDate]?" ✓":""}</div>
-    </button>`:""}
+    <button onclick="${prevDate?`wDate('${prevDate}')`:'null'}" style="flex-shrink:0;background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${prevDate?1:0.3};pointer-events:${prevDate?"auto":"none"};">
+      <div style="font-size:9px;color:var(--faint);">◀ prev</div>
+      <div style="font-size:12px;font-weight:600;color:var(--sub);">${prevDate?dayAbbr(prevDate):"—"}</div>
+    </button>
     <button onclick="" style="flex:1;background:var(--acc);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;cursor:default;">
-      <div style="font-size:9px;color:rgba(255,255,255,.65);">today</div>
+      <div style="font-size:9px;color:rgba(255,255,255,.65);">${S.wDate===SESSIONS[SESSIONS.indexOf(S.wDate)]?"today":fmtLong(S.wDate)}</div>
       <div style="font-size:12px;font-weight:700;color:#fff;">${dayAbbr(S.wDate)}</div>
+    </button>
+    <button onclick="${nextDate?`wDate('${nextDate}')`:'null'}" style="flex-shrink:0;background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${nextDate?1:0.3};pointer-events:${nextDate?"auto":"none"};">
+      <div style="font-size:9px;color:var(--faint);">next ▶</div>
+      <div style="font-size:12px;font-weight:600;color:var(--sub);">${nextDate?dayAbbr(nextDate):"—"}</div>
     </button>
     <div style="position:relative;flex-shrink:0;">
       <button onclick="document.getElementById('w-date-picker').focus();document.getElementById('w-date-picker').click();"
@@ -586,22 +625,22 @@ function renderCards_() {
     const slot = slots[si];
     const oi = S.wSel[si]??0;
     const sets = getSets(si);
-    const ac = AREA_COLOR[slot.area] || "var(--acc)";
+    const ac = "var(--acc)";
     const allDone = sets.length > 0 && sets.every(s=>s.feel);
     const doneCnt = sets.filter(s=>s.feel).length;
 
     return `
-    <div class="card" style="border-color:${allDone?"var(--grn)":"var(--border)"};">
+    <div class="card">
       <!-- Block header -->
-      <div style="padding:9px 10px 8px;border-bottom:0.5px solid ${allDone?"var(--grn-soft)":"var(--border)"};">
+      <div style="padding:9px 10px 8px;border-bottom:0.5px solid var(--border);">
         <!-- Row 1: move buttons + area label centered + done indicator -->
         <div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;">
           <div style="display:flex;flex-direction:column;flex-shrink:0;">
             <button onclick="wMoveBlock(${dispIdx},-1)" style="background:none;border:none;padding:1px 4px;color:${dispIdx===0?"transparent":"var(--faint)"};font-size:11px;line-height:1;pointer-events:${dispIdx===0?"none":"auto"};">▲</button>
             <button onclick="wMoveBlock(${dispIdx},1)"  style="background:none;border:none;padding:1px 4px;color:${dispIdx===order.length-1?"transparent":"var(--faint)"};font-size:11px;line-height:1;pointer-events:${dispIdx===order.length-1?"none":"auto"};">▼</button>
           </div>
-          <div style="flex:1;text-align:center;font-size:10px;font-weight:700;color:${ac};text-transform:uppercase;letter-spacing:.09em;">${slot.area}</div>
-          <div style="font-size:10px;font-weight:700;color:${allDone?"var(--grn)":"var(--faint)"};min-width:28px;text-align:right;">${allDone?"✅":doneCnt+"/"+sets.length}</div>
+          <div style="flex:1;text-align:center;font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.09em;">${slot.area}</div>
+          <div style="font-size:10px;font-weight:600;color:var(--faint);min-width:28px;text-align:right;">${doneCnt}/${sets.length}</div>
         </div>
         <!-- Exercise picker -->
         <div style="position:relative;">
@@ -616,7 +655,7 @@ function renderCards_() {
       <!-- Set table -->
       <div style="padding:6px 8px 10px;">
         <!-- Column headers -->
-        <div style="display:grid;grid-template-columns:36px 46px 46px 70px 52px;gap:3px;padding:0 2px 4px;font-size:9px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;">
+        <div style="display:grid;grid-template-columns:30px 1fr 1fr 1fr 1fr;gap:3px;padding:0 2px 4px;font-size:9px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;">
           <span></span>
           <span style="text-align:center;">Reps</span>
           <span style="text-align:center;">kg</span>
