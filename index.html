@@ -471,18 +471,29 @@ function wSave() {
 
 // ── RENDER ─────────────────────────────────────────────────────────────────
 function render() {
-  const sy = window.scrollY;
-  document.getElementById("app").innerHTML =
-    renderTopBar()+
-    `<div style="padding:12px 12px 0;">`+
-    (S.tab==="workout"   ? renderWorkoutTab()   : "")+
-    (S.tab==="nutrition" ? renderNutritionTab() : "")+
-    (S.tab==="progress"  ? renderProgressTab()  : "")+
-    `</div>`;
-  renderNav();
-  window.scrollTo(0,sy);
-  renderSyncBadge();
-  if (S.tab==="workout") renderTimerSection();
+  try {
+    const sy = window.scrollY;
+    document.getElementById("app").innerHTML =
+      renderTopBar()+
+      `<div style="padding:12px 12px 0;">`+
+      (S.tab==="workout"   ? renderWorkoutTab()   : "")+
+      (S.tab==="nutrition" ? renderNutritionTab() : "")+
+      (S.tab==="progress"  ? renderProgressTab()  : "")+
+      `</div>`;
+    renderNav();
+    window.scrollTo(0,sy);
+    renderSyncBadge();
+    if (S.tab==="workout") renderTimerSection();
+  } catch(e) {
+    document.getElementById("app").innerHTML =
+      `<div style="padding:32px 20px;font-family:monospace;font-size:13px;color:#ff3b30;background:#fff;min-height:100vh;">
+        <strong>Render error — screenshot this and send to Claude:</strong><br/><br/>
+        ${String(e).replace(/</g,"&lt;")}
+        <br/><br/>
+        ${(e.stack||"").replace(/</g,"&lt;").replace(/\n/g,"<br/>")}
+      </div>`;
+    console.error("Render error:", e);
+  }
 }
 
 function renderTopBar() {
