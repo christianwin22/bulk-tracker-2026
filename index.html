@@ -30,6 +30,8 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { background: var(--bg); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; padding-bottom: 90px; }
+#app { max-width: 480px; margin: 0 auto; }
+#nav { max-width: 480px; left: 50%; transform: translateX(-50%); right: auto; width: 100%; }
 input, select, textarea, button { font-family: inherit; }
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
@@ -72,7 +74,7 @@ button { -webkit-appearance: none; cursor: pointer; }
 .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
 
 /* SET ROW */
-.set-row { display: grid; grid-template-columns: 36px 46px 46px 70px 52px; gap: 3px; align-items: center; padding: 5px 8px; border-radius: 8px; }
+.set-row { display: grid; grid-template-columns: 30px 1fr 1fr 2fr 1fr; gap: 3px; align-items: center; padding: 5px 8px; border-radius: 8px; }
 
 /* CELL INPUT */
 .cell-inp { border: 0.5px solid var(--border); border-radius: 6px; background: var(--card); color: var(--txt); font-size: 13px; font-weight: 500; padding: 6px 3px; text-align: center; outline: none; width: 100%; }
@@ -118,7 +120,8 @@ const SLOTS = {
   ],
 };
 const AREA_COLOR  = {"Chest":"#ff6b35","Back Pull":"#185FA5","Back Row":"#0C447C","Legs":"#34c759","Shoulder":"#af52de"};
-const FEEL_COLOR  = {Easy:"#34c759",Med:"#ff9f0a",Hard:"#ff6b35",Max:"#ff3b30"};
+const FEEL_COLOR  = {Easy:"#D4DCE8",Med:"#8EA8C3",Hard:"#4A6FA5",Max:"#1A2F45"};
+const FEEL_TEXT   = {Easy:"#2D3F58",Med:"#1A2F45",Hard:"#ffffff",Max:"#ffffff"};
 const FEEL_REST   = {Easy:60,Med:90,Hard:150,Max:180};
 const FEEL_DESC   = {Easy:"4+ reps in tank",Med:"2–3 reps left",Hard:"1 rep left — target",Max:"Hit limit"};
 const FEELS       = ["Easy","Med","Hard","Max"];
@@ -578,10 +581,29 @@ function render() {
 }
 
 function renderTopBar() {
+  const start = SESSIONS[0], end = SESSIONS[SESSIONS.length-1];
+  const days = Math.round((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+  const fmt = d => new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+  const subtitle = `${fmt(start)} – ${fmt(end)} · ${days} days`;
   return `<div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:rgba(240,244,248,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:50;border-bottom:1px solid var(--border);">
     <div>
       <div style="font-size:20px;font-weight:800;color:var(--txt);letter-spacing:-.4px;">${{workout:"Workout",nutrition:"Nutrition",progress:"Progress"}[S.tab]}</div>
-      <div style="font-size:11px;color:var(--sub);margin-top:1px;">Target 68–70 kg · Jun–Jul 2026</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:1px;">${subtitle}</div>
+    </div>
+    <div style="position:relative;">
+      <div id="avatar-btn" onclick="toggleProfileMenu()" style="width:32px;height:32px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;user-select:none;">${_userInitials}</div>
+    </div>
+  </div>
+  <div id="profile-menu" style="display:none;position:absolute;top:58px;right:12px;background:var(--card);border:0.5px solid var(--border);border-radius:14px;width:220px;z-index:200;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1);">
+    <div style="padding:12px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">${_userInitials}</div>
+      <div style="overflow:hidden;">
+        <div style="font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_userEmail}</div>
+        <div style="font-size:11px;color:var(--sub);">Synced ✓</div>
+      </div>
+    </div>
+    <div onclick="doSignOut()" style="padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;color:#ff3b30;">
+      <span style="font-size:16px;">↩</span> Sign out
     </div>
   </div>`;
 }
@@ -693,7 +715,7 @@ function renderCards_() {
       <!-- Set table -->
       <div style="padding:6px 8px 10px;">
         <!-- Column headers -->
-        <div style="display:grid;grid-template-columns:30px 1fr 1fr 1fr 1fr;gap:3px;padding:0 2px 4px;font-size:9px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;">
+        <div style="display:grid;grid-template-columns:30px 1fr 1fr 2fr 1fr;gap:3px;padding:0 2px 4px;font-size:9px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;">
           <span></span>
           <span style="text-align:center;">Reps</span>
           <span style="text-align:center;">kg</span>
@@ -705,29 +727,29 @@ function renderCards_() {
           ${sets.map((s,idx)=>{
             const fc = s.feel ? FEEL_COLOR[s.feel] : null;
             const pickerOpen = S.feelPicker && S.feelPicker.si===si && S.feelPicker.idx===idx;
-            return `<div class="set-row" style="background:${fc?fc+"14":"transparent"};border:0.5px solid ${fc?fc+"33":"transparent"};">
+            return `<div class="set-row" style="background:${fc?fc+"28":"transparent"};border:0.5px solid ${fc?fc+"55":"transparent"};">
               <span style="font-size:9px;font-weight:700;color:var(--faint);white-space:nowrap;">Set ${s.set}</span>
               <input type="number" value="${s.reps}" placeholder="—"
                 onchange="wSet(${si},${idx},'reps',this.value)" class="cell-inp"/>
               <input type="number" value="${s.weight}" placeholder="—"
                 onchange="wSet(${si},${idx},'weight',this.value)" class="cell-inp"/>
               <button onclick="openFeelPicker(${si},${idx})"
-                style="border:1px solid ${fc?fc:"var(--border)"};background:${fc?fc:"var(--bg)"};color:${fc?"#fff":"var(--faint)"};border-radius:8px;padding:5px 6px;font-size:11px;font-weight:700;cursor:pointer;width:100%;text-align:center;">
-                ${s.feel||"Feel"}${fc?"":""}
+                style="border:1px solid ${fc?fc+"88":"var(--border)"};background:${fc?fc:"var(--bg)"};color:${fc?FEEL_TEXT[s.feel]:"var(--faint)"};border-radius:8px;padding:5px 6px;font-size:11px;font-weight:700;cursor:pointer;width:100%;text-align:center;">
+                ${s.feel||"Feel"}
               </button>
-              <div class="rest-cell" style="border-color:${s.rest&&fc?fc:"var(--border)"};background:${s.rest&&fc?fc+"14":"var(--bg)"};color:${s.rest&&fc?fc:"var(--faint)"};">
+              <div class="rest-cell" style="border-color:${s.rest&&fc?fc+"88":"var(--border)"};background:${s.rest&&fc?fc+"30":"var(--bg)"};color:${s.rest&&fc?FEEL_TEXT[s.feel]:"var(--faint)"};">
                 ${s.rest ? fmtRest(s.rest) : "—"}
               </div>
             </div>
             ${pickerOpen?`<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin:4px 0 6px;overflow:hidden;">
               <div style="padding:10px 12px 6px;font-size:12px;font-weight:700;color:var(--sub);">Set ${s.set} — how did it feel?</div>
-              ${FEELS.map(f=>{const fc2=FEEL_COLOR[f];const sel=s.feel===f;return `<div onclick="wSet(${si},${idx},'feel','${f}')"
-                style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:${sel?fc2+"18":"transparent"};border-top:1px solid var(--border);cursor:pointer;">
+              ${FEELS.map(f=>{const fc2=FEEL_COLOR[f];const ft2=FEEL_TEXT[f];const sel=s.feel===f;return `<div onclick="wSet(${si},${idx},'feel','${f}')"
+                style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:${sel?fc2:"transparent"};border-top:1px solid var(--border);cursor:pointer;">
                 <div>
-                  <div style="font-size:13px;font-weight:700;color:${fc2};">${f}</div>
-                  <div style="font-size:11px;color:var(--sub);margin-top:1px;">${FEEL_DESC[f]} · ${fmtRest(FEEL_REST[f])} rest</div>
+                  <div style="font-size:13px;font-weight:700;color:${sel?ft2:"var(--txt)"};">${f}</div>
+                  <div style="font-size:11px;color:${sel?ft2+"cc":"var(--sub)"};margin-top:1px;">${FEEL_DESC[f]} · ${fmtRest(FEEL_REST[f])} rest</div>
                 </div>
-                ${sel?`<div style="width:18px;height:18px;border-radius:50%;background:${fc2};display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">✓</div>`:`<div style="width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border);"></div>`}
+                ${sel?`<div style="width:18px;height:18px;border-radius:50%;background:${ft2==='#ffffff'?'rgba(255,255,255,.3)':'rgba(0,0,0,.15)'};display:flex;align-items:center;justify-content:center;font-size:10px;color:${ft2};">✓</div>`:`<div style="width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border);"></div>`}
               </div>`;}).join("")}
             </div>`:""}`;
           }).join("")}
