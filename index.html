@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Bulk Tracker 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: #f7f3ee; font-family: 'DM Mono', monospace; min-height: 100vh; padding-bottom: 200px; }
+input[type=number], input[type=date], select, textarea { font-family: 'DM Mono', monospace; }
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=date]::-webkit-calendar-picker-indicator { opacity: 0.5; }
+#timer-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: #ede0d4;
+  border-top: 2.5px solid #d4622a;
+  padding: 14px 18px 32px;
+  z-index: 100;
+  display: none;
+}
+#timer-bar.active { display: block; }
+button { -webkit-appearance: none; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="timer-bar"></div>
+
+<script>
+// ── SUPABASE CONFIG — replace these two values after creating your project ──
+const SUPABASE_URL      = "YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const SESSIONS = [
+  "2026-06-29","2026-07-01","2026-07-03",
+  "2026-07-06","2026-07-08","2026-07-10",
+  "2026-07-13","2026-07-15","2026-07-17",
+  "2026-07-20","2026-07-22","2026-07-24"
+];
+
+const SLOTS = {
+  A: [
+    {area:"CHEST",    sets:5, reps:5, options:[{id:"f1",name:"Flat DB Bench Press"},{id:"f2",name:"DB Chest Fly"}]},
+    {area:"BACK PULL",sets:5, reps:5, options:[{id:"b1",name:"Wide Grip Lat Pulldown"},{id:"b2",name:"Band-Assisted Pull-up"}]},
+    {area:"BACK ROW", sets:5, reps:5, options:[{id:"r1",name:"Seated Cable Row — Close Grip"},{id:"r2",name:"Chest-Supported DB Row"},{id:"r3",name:"Smith Machine Row"}]},
+    {area:"LEGS",     sets:5, reps:5, options:[{id:"l1",name:"DB Romanian Deadlift"},{id:"l2",name:"DB Sumo Squat"}]},
+  ],
+  B: [
+    {area:"CHEST",    sets:5, reps:5, options:[{id:"c1",name:"Incline DB Press"},{id:"c2",name:"DB Chest Fly"}]},
+    {area:"BACK PULL",sets:5, reps:5, options:[{id:"p1",name:"Wide Grip Lat Pulldown"},{id:"p2",name:"Band-Assisted Pull-up"}]},
+    {area:"BACK ROW", sets:5, reps:5, options:[{id:"q1",name:"Seated Cable Row — Close Grip"},{id:"q2",name:"Chest-Supported DB Row"},{id:"q3",name:"Smith Machine Row"}]},
+    {area:"SHOULDER", sets:5, reps:5, options:[{id:"s1",name:"Standing DB OHP"},{id:"s2",name:"Seated DB OHP"},{id:"s3",name:"Smith Machine OHP"}]},
+  ],
+};
+
+const AC    = {CHEST:"#d4622a","BACK PULL":"#3a7abf","BACK ROW":"#2a5a9f",LEGS:"#4a7a3a",SHOULDER:"#8060c0"};
+const FC    = {Easy:"#7aaa5a",Med:"#d4a030",Hard:"#d4622a",Max:"#b03020"};
+const FEELS = ["Easy","Med","Hard","Max"];
+const NUT   = {calories:2600,protein:105,carbs:300,fat:80};
+const C     = {
+  bg:"#f7f3ee",sur:"#fff",alt:"#f0ebe3",bor:"#e5ddd3",
+  txt:"#1c1610",mut:"#8c7e6e",fnt:"#c4b8aa",
+  org:"#d4622a",osf:"#f5e8df",
+  grn:"#4a7a3a",gsf:"#eaf2e5",
+  blu:"#3a7abf",pur:"#7070b8"
+};
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+const today = new Date().toISOString().slice(0,10);
+
+function nearestSession() {
+  return SESSIONS.find(d => d >= today) || SESSIONS[SESSIONS.length-1];
+}
+function getType(date) {
+  const i = SESSIONS.indexOf(date);
+  return i < 0 ? null : i % 2 === 0 ? "A" : "B";
+}
+function mkSets(n) {
+  return Array.from({length:n}, (_,i) => ({set:i+1,reps:"",weight:"",feel:""}));
+}
+function defaultMeals() {
+  return [
+    {name:"Breakfast",calories:"",protein:"",carbs:"",fat:""},
+    {name:"Lunch",    calories:"",protein:"",carbs:"",fat:""},
+    {name:"Dinner",   calories:"",protein:"",carbs:"",fat:""}
+  ];
+}
+
+let S = {
+  tab: "workout",
+  height: "172",
+  weight: "—",
+  wDate: nearestSession(),
+  wManual: null,
+  wSel: {},
+  wNums: {0:"1", 1:"2", 2:"3", 3:"4"},
+  wSets: {
+    "2026-06-29_0": [{"set":1,"reps":"","weight":"15","feel":"Easy"},{"set":2,"reps":"5","weight":"15","feel":"Easy"},{"set":3,"reps":"5","weight":"15","feel":"Easy"},{"set":4,"reps":"5","weight":"20","feel":"Med"},{"set":5,"reps":"5","weight":"20","feel":"Med"}],
+    "2026-06-29_1": [{"set":1,"reps":"5","weight":"21","feel":"Easy"},{"set":2,"reps":"5","weight":"21","feel":"Easy"},{"set":3,"reps":"5","weight":"28","feel":"Easy"},{"set":4,"reps":"5","weight":"28","feel":"Easy"},{"set":5,"reps":"5","weight":"28","feel":"Easy"}],
+    "2026-06-29_2": [{"set":1,"reps":"5","weight":"21","feel":"Easy"},{"set":2,"reps":"5","weight":"21","feel":"Easy"},{"set":3,"reps":"5","weight":"21","feel":"Easy"},{"set":4,"reps":"5","weight":"28","feel":"Med"},{"set":5,"reps":"5","weight":"28","feel":"Med"}],
+    "2026-06-29_3": [{"set":1,"reps":"5","weight":"15","feel":"Easy"},{"set":2,"reps":"5","weight":"15","feel":"Easy"},{"set":3,"reps":"5","weight":"15","feel":"Easy"},{"set":4,"reps":"5","weight":"20","feel":"Med"},{"set":5,"reps":"5","weight":"20","feel":"Med"}]
+  },
+  nDate: today,
+  nMeals: defaultMeals(),
+  pDate: today,
+  sessions: {
+    "2026-06-29": {"date":"2026-06-29","workoutType":"A","exercises":[{"area":"CHEST","name":"Flat DB Bench Press","sets":[{"set":1,"reps":"","weight":"15","feel":"Easy"},{"set":2,"reps":"5","weight":"15","feel":"Easy"},{"set":3,"reps":"5","weight":"15","feel":"Easy"},{"set":4,"reps":"5","weight":"20","feel":"Med"},{"set":5,"reps":"5","weight":"20","feel":"Med"}]},{"area":"BACK PULL","name":"Wide Grip Lat Pulldown","sets":[{"set":1,"reps":"5","weight":"21","feel":"Easy"},{"set":2,"reps":"5","weight":"21","feel":"Easy"},{"set":3,"reps":"5","weight":"28","feel":"Easy"},{"set":4,"reps":"5","weight":"28","feel":"Easy"},{"set":5,"reps":"5","weight":"28","feel":"Easy"}]},{"area":"BACK ROW","name":"Seated Cable Row — Close Grip","sets":[{"set":1,"reps":"5","weight":"21","feel":"Easy"},{"set":2,"reps":"5","weight":"21","feel":"Easy"},{"set":3,"reps":"5","weight":"21","feel":"Easy"},{"set":4,"reps":"5","weight":"28","feel":"Med"},{"set":5,"reps":"5","weight":"28","feel":"Med"}]},{"area":"LEGS","name":"DB Romanian Deadlift","sets":[{"set":1,"reps":"5","weight":"15","feel":"Easy"},{"set":2,"reps":"5","weight":"15","feel":"Easy"},{"set":3,"reps":"5","weight":"15","feel":"Easy"},{"set":4,"reps":"5","weight":"20","feel":"Med"},{"set":5,"reps":"5","weight":"20","feel":"Med"}]}]}
+  },
+  nutrition: {},
+  progress: {},
+  timer: { visible:false, running:false, seconds:0, total:0, info:"" },
+  syncStatus: "idle"
+};
+
+// ── SUPABASE ───────────────────────────────────────────────────────────────
+let _sb = null;
+let _userId = null;
+
+function sbReady() {
+  return _sb !== null && _userId !== null
+    && SUPABASE_URL !== "YOUR_SUPABASE_URL";
+}
+
+async function sbInit() {
+  if (SUPABASE_URL === "YOUR_SUPABASE_URL") return;
+  try {
+    _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const { data: { session } } = await _sb.auth.getSession();
+    if (session) {
+      _userId = session.user.id;
+    } else {
+      const { data } = await _sb.auth.signInAnonymously();
+      _userId = data?.user?.id ?? null;
+    }
+  } catch(e) {
+    console.warn("Supabase init failed:", e);
+  }
+}
+
+async function sbLoad() {
+  if (!sbReady()) return;
+  try {
+    const { data, error } = await _sb
+      .from("user_data")
+      .select("*")
+      .eq("id", _userId)
+      .maybeSingle();
+    if (error) throw error;
+    if (data) {
+      S.sessions  = Object.assign({}, S.sessions,  data.sessions  || {});
+      S.nutrition = Object.assign({}, S.nutrition, data.nutrition || {});
+      S.progress  = Object.assign({}, S.progress,  data.progress  || {});
+      S.wSets     = Object.assign({}, S.wSets,     data.w_sets    || {});
+      if (data.height) S.height = data.height;
+      if (data.weight) S.weight = data.weight;
+      if (data.w_nums) S.wNums  = data.w_nums;
+    }
+  } catch(e) {
+    console.warn("Supabase load failed:", e);
+  }
+}
+
+async function sbSave() {
+  if (!sbReady()) return;
+  S.syncStatus = "syncing";
+  renderSyncBadge();
+  try {
+    const { error } = await _sb.from("user_data").upsert({
+      id:        _userId,
+      sessions:  S.sessions,
+      nutrition: S.nutrition,
+      progress:  S.progress,
+      w_sets:    S.wSets,
+      height:    S.height,
+      weight:    S.weight,
+      w_nums:    S.wNums
+    });
+    if (error) throw error;
+    S.syncStatus = "synced";
+  } catch(e) {
+    console.warn("Supabase save failed:", e);
+    S.syncStatus = "error";
+  }
+  renderSyncBadge();
+}
+
+function renderSyncBadge() {
+  const el = document.getElementById("sync-badge");
+  if (!el) return;
+  const map = {
+    idle:    ["", C.fnt],
+    syncing: ["↑ syncing…", C.mut],
+    synced:  ["✓ synced", C.grn],
+    error:   ["⚠ offline", "#b03020"]
+  };
+  const [txt, col] = map[S.syncStatus] || ["", C.fnt];
+  el.textContent = txt;
+  el.style.color = col;
+}
+
+// ── LOCALSTORAGE (local cache + offline fallback) ──────────────────────────
+const LS = "bulktracker_v1";
+function lsSave() {
+  try {
+    localStorage.setItem(LS, JSON.stringify({
+      sessions:S.sessions, nutrition:S.nutrition, progress:S.progress, wSets:S.wSets,
+      height:S.height, weight:S.weight, wNums:S.wNums
+    }));
+  } catch(e) {}
+  sbSave();
+}
+function lsLoad() {
+  try {
+    const raw = localStorage.getItem(LS);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    S.sessions  = Object.assign({}, S.sessions,  d.sessions  || {});
+    S.nutrition = Object.assign({}, S.nutrition, d.nutrition || {});
+    S.progress  = Object.assign({}, S.progress,  d.progress  || {});
+    S.wSets     = Object.assign({}, S.wSets,     d.wSets     || {});
+    if (d.height) S.height = d.height;
+    if (d.weight) S.weight = d.weight;
+    if (d.wNums) S.wNums = d.wNums;
+  } catch(e) {}
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function fmtS(d) { return new Date(d+'T00:00:00').toLocaleDateString("en-GB",{day:"numeric",month:"short"}); }
+function fmtL(d) { return new Date(d+'T00:00:00').toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
+function getWType() { return S.wManual || getType(S.wDate) || "A"; }
+function getSlots()  { return SLOTS[getWType()]; }
+function getEx(si)   { const slot=getSlots()[si]; return slot.options[Math.min(S.wSel[si]??0,slot.options.length-1)]; }
+function getSets(si) { const key=S.wDate+"_"+si; return S.wSets[key]||mkSets(getSlots()[si].sets); }
+
+// ── TIMER ──────────────────────────────────────────────────────────────────
+let timerIv = null;
+
+function showTimer(si, idx) {
+  const slots = getSlots();
+  const next  = slots[si+1];
+  const info  = next
+    ? "SET "+(idx+1)+" · "+slots[si].area+" · "+next.area+" next"
+    : "SET "+(idx+1)+" · "+slots[si].area+" · last exercise!";
+  clearInterval(timerIv);
+  S.timer = { visible:true, running:false, seconds:0, total:0, info };
+  renderTimer();
+}
+
+function presetTimer(s) {
+  clearInterval(timerIv);
+  S.timer.seconds = s;
+  S.timer.total   = s;
+  S.timer.running = true;
+  renderTimer();
+  timerIv = setInterval(() => {
+    S.timer.seconds--;
+    if (S.timer.seconds <= 0) {
+      S.timer.seconds = 0;
+      S.timer.running = false;
+      clearInterval(timerIv);
+      onTimerDone();
+    }
+    renderTimer();
+  }, 1000);
+}
+
+function onTimerDone() {
+  if (navigator.vibrate) navigator.vibrate([200,100,200]);
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    [880,660].forEach((freq,i) => {
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type="sine"; o.frequency.value=freq;
+      const t=ctx.currentTime+i*0.45;
+      g.gain.setValueAtTime(0.25,t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.4);
+      o.start(t); o.stop(t+0.4);
+    });
+  } catch(e) {}
+  renderTimer();
+}
+
+function skipTimer() {
+  clearInterval(timerIv);
+  S.timer.visible = false;
+  S.timer.running = false;
+  document.getElementById("timer-bar").classList.remove("active");
+}
+
+function adjTimer(d) {
+  if (!S.timer.running) return;
+  S.timer.seconds = Math.max(10, S.timer.seconds + d);
+  if (d > 0) S.timer.total = Math.max(S.timer.total, S.timer.seconds);
+  renderTimer();
+}
+
+function fmtTime(s) {
+  return Math.floor(s/60)+":"+(s%60).toString().padStart(2,"0");
+}
+
+function renderTimer() {
+  const bar = document.getElementById("timer-bar");
+  if (!S.timer.visible) { bar.classList.remove("active"); return; }
+  bar.classList.add("active");
+
+  const {running, seconds, total, info} = S.timer;
+  const done = running === false && total > 0 && seconds <= 0;
+  const R = 34, circ = 2*Math.PI*R;
+  const pct = (running || done) ? (total > 0 ? seconds/total : 0) : 0;
+  const offset = circ * (1 - pct);
+
+  const presets = [{l:"1m",v:60},{l:"1m30s",v:90},{l:"2m",v:120},{l:"3m",v:180}];
+
+  let centerTxt, centerColor;
+  if (!running && total === 0) {
+    centerTxt = "TAP"; centerColor = C.fnt;
+  } else if (done) {
+    centerTxt = "✓"; centerColor = C.grn;
+  } else {
+    centerTxt = fmtTime(seconds); centerColor = C.txt;
+  }
+
+  bar.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <div style="font-size:9px;color:${C.org};letter-spacing:.16em;font-weight:700;">REST TIMER${done?" — DONE ✓":""}</div>
+        <div style="font-size:9px;color:${C.mut};">${info}</div>
+      </div>
+      <button onclick="skipTimer()" style="font-size:9px;color:${C.org};background:${C.sur};border:1px solid #eecdb8;border-radius:20px;padding:5px 12px;font-family:'DM Mono',monospace;font-weight:700;cursor:pointer;">CLOSE ×</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:18px;">
+      <div style="position:relative;width:76px;height:76px;flex-shrink:0;">
+        <svg width="76" height="76" viewBox="0 0 76 76">
+          <circle cx="38" cy="38" r="${R}" fill="none" stroke="${C.bor}" stroke-width="5"
+            ${!running&&total===0?'stroke-dasharray="6 4"':""}/>
+          ${(running||done)?`<circle cx="38" cy="38" r="${R}" fill="none" stroke="${done?C.grn:C.org}" stroke-width="5"
+            stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
+            stroke-linecap="round" transform="rotate(-90 38 38)"/>`:""}
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+          <span style="font-size:${done?22:(!running&&total===0?13:19)}px;font-weight:700;color:${centerColor};font-family:'DM Mono',monospace;letter-spacing:${!running&&total===0?".04em":"-0.03em"};">${centerTxt}</span>
+        </div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:9px;color:${C.fnt};margin-bottom:6px;letter-spacing:.08em;">${!running&&total===0?"TAP A PRESET TO START":running?"RUNNING · TAP TO CHANGE":"DONE"}</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:7px;">
+          ${presets.map(p=>{
+            const sel = running && S.timer.total===p.v;
+            return `<button onclick="presetTimer(${p.v})" style="padding:6px 0;border-radius:6px;border:1px solid ${sel?C.org:C.bor};background:${sel?C.org:C.sur};color:${sel?"#fff":C.mut};font-size:9px;font-weight:700;font-family:'DM Mono',monospace;cursor:pointer;">${p.l}</button>`;
+          }).join("")}
+        </div>
+        <div style="display:flex;gap:5px;">
+          <button onclick="adjTimer(-30)" style="flex:1;padding:7px 0;border-radius:8px;border:1px solid ${C.bor};background:${C.sur};color:${running?C.txt:C.fnt};font-size:11px;font-weight:700;font-family:'DM Mono',monospace;cursor:pointer;">−30s</button>
+          <button onclick="adjTimer(30)"  style="flex:1;padding:7px 0;border-radius:8px;border:1px solid ${C.bor};background:${C.sur};color:${running?C.txt:C.fnt};font-size:11px;font-weight:700;font-family:'DM Mono',monospace;cursor:pointer;">+30s</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── WORKOUT ACTIONS ────────────────────────────────────────────────────────
+function wDate(d)   { S.wDate=d; S.wManual=null; render(); }
+function wManual(t) { S.wManual=(S.wManual===t?null:t); render(); }
+function wEx(si,oi) {
+  S.wSel[si]=oi;
+  S.wSets[S.wDate+"_"+si] = mkSets(getSlots()[si].sets);
+  renderCards();
+}
+
+function wSet(si, idx, field, val) {
+  const key = S.wDate+"_"+si;
+  if (!S.wSets[key]) S.wSets[key] = mkSets(getSlots()[si].sets);
+  S.wSets[key][idx][field] = val;
+  if (field === "feel" && val) showTimer(si, idx);
+  renderCards();
+  updateProgressBar();
+}
+
+function wSave() {
+  const slots = getSlots();
+  S.sessions[S.wDate] = {
+    date: S.wDate,
+    workoutType: getWType(),
+    exercises: slots.map((slot,i) => ({
+      area: slot.area,
+      name: getEx(i).name,
+      sets: getSets(i)
+    }))
+  };
+  lsSave();
+  const btn = document.getElementById("w-save");
+  if (btn) {
+    btn.textContent="✓ SESSION SAVED"; btn.style.background=C.grn;
+    setTimeout(()=>{ btn.textContent="SAVE SESSION"; btn.style.background=C.org; }, 2500);
+  }
+  const chips = document.getElementById("w-chips");
+  if (chips) chips.innerHTML = renderChips();
+}
+
+// ── NUTRITION ACTIONS ──────────────────────────────────────────────────────
+function nDate(d) {
+  S.nDate = d;
+  const saved = S.nutrition[d];
+  S.nMeals = saved ? JSON.parse(JSON.stringify(saved.meals)) : defaultMeals();
+  render();
+}
+function nMeal(i,f,v) { S.nMeals[i][f]=v; updateNutTotals(); }
+function nName(i,v)   { S.nMeals[i].name=v; }
+function nAdd()       { S.nMeals.push({name:"",calories:"",protein:"",carbs:"",fat:""}); render(); }
+function nDel(i)      { S.nMeals.splice(i,1); render(); }
+function nSave() {
+  const tot = S.nMeals.reduce((a,m)=>({
+    calories:a.calories+(+m.calories||0), protein:a.protein+(+m.protein||0),
+    carbs:a.carbs+(+m.carbs||0),         fat:a.fat+(+m.fat||0)
+  }), {calories:0,protein:0,carbs:0,fat:0});
+  S.nutrition[S.nDate] = {meals:JSON.parse(JSON.stringify(S.nMeals)), totals:tot};
+  lsSave();
+  const b=document.getElementById("n-save");
+  if(b){b.textContent="✓ DAY SAVED";b.style.background=C.grn;setTimeout(()=>{b.textContent="SAVE DAY";b.style.background=C.org;},2500);}
+}
+
+// ── PROGRESS ACTIONS ───────────────────────────────────────────────────────
+function pDate(d) { S.pDate=d; render(); }
+function pSave() {
+  S.progress[S.pDate] = {
+    weight:document.getElementById("p-w")?.value||"",
+    sleep: document.getElementById("p-sl")?.value||"",
+    water: document.getElementById("p-wa")?.value||"",
+    steps: document.getElementById("p-st")?.value||"",
+    note:  document.getElementById("p-no")?.value||""
+  };
+  lsSave();
+  const b=document.getElementById("p-save");
+  if(b){b.textContent="✓ SAVED";b.style.background=C.grn;setTimeout(()=>{b.textContent="SAVE PROGRESS";b.style.background=C.org;},2500);}
+}
+
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render() {
+  const sy = window.scrollY;
+  document.getElementById("app").innerHTML =
+    renderHeader() + renderTabBar() +
+    `<div style="padding:16px 18px 0;">` +
+      (S.tab==="workout"   ? renderWorkoutTab()   : "") +
+      (S.tab==="nutrition" ? renderNutritionTab() : "") +
+      (S.tab==="progress"  ? renderProgressTab()  : "") +
+      renderDriveBar() +
+    `</div>`;
+  window.scrollTo(0, sy);
+  renderSyncBadge();
+}
+
+function renderHeader() {
+  return `<div style="padding:20px 18px 14px;border-bottom:1px solid ${C.bor};">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div style="font-size:9px;color:${C.org};letter-spacing:.2em;margin-bottom:3px;">BULK TRACKER · 2026</div>
+      <span id="sync-badge" style="font-size:9px;letter-spacing:.06em;"></span>
+    </div>
+    <div style="font-size:20px;font-weight:700;color:${C.txt};letter-spacing:-.02em;">
+      <span contenteditable="true" onblur="S.height=this.textContent.trim();lsSave();" style="outline:none;border-bottom:1px dashed ${C.fnt};min-width:10px;display:inline-block;">${S.height}</span> cm ·
+      <span contenteditable="true" onblur="S.weight=this.textContent.trim();lsSave();" style="outline:none;border-bottom:1px dashed ${C.fnt};min-width:10px;display:inline-block;">${S.weight}</span> kg
+    </div>
+    <div style="font-size:11px;color:${C.mut};margin-top:2px;">Target 68–70 kg · Jun 29 – Jul 24</div>
+  </div>`;
+}
+
+function renderTabBar() {
+  const tabs=[["workout","WORKOUT"],["nutrition","NUTRITION"],["progress","PROGRESS"]];
+  return `<div style="display:flex;gap:2px;padding:12px 18px;border-bottom:1px solid ${C.bor};">
+    ${tabs.map(([t,l])=>`<button onclick="S.tab='${t}';render();" style="padding:7px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;background:${S.tab===t?C.org:"transparent"};color:${S.tab===t?"#fff":C.mut};">${l}</button>`).join("")}
+  </div>`;
+}
+
+// ── WORKOUT TAB ────────────────────────────────────────────────────────────
+function renderWorkoutTab() {
+  const wt=getWType(), st=getType(S.wDate), slots=getSlots();
+  let tot=0,done=0;
+  slots.forEach((_,i)=>{const s=getSets(i);tot+=s.length;done+=s.filter(x=>x.feel).length;});
+
+  return `<div id="w-tab">
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="date" value="${S.wDate}" onchange="wDate(this.value)"
+        style="background:${C.sur};border:1px solid ${C.bor};border-radius:6px;color:${C.txt};font-family:'DM Mono',monospace;font-size:12px;padding:4px 6px;"/>
+      <div style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;background:${st?C.osf:C.alt};border:1px solid ${st?"#eecdb8":C.bor};">
+        <span style="font-size:9px;color:${C.mut};">${st?"sched:":"manual:"}</span>
+        ${["A","B"].map(t=>`<button onclick="wManual('${t}')" style="width:26px;height:26px;border-radius:6px;border:1px solid ${wt===t?C.org:C.bor};background:${wt===t?C.org:"transparent"};color:${wt===t?"#fff":C.mut};font-family:'DM Mono',monospace;font-weight:700;font-size:12px;cursor:pointer;">${t}</button>`).join("")}
+      </div>
+      ${S.sessions[S.wDate]?`<span style="font-size:10px;color:${C.grn};">✓ saved</span>`:""}
+      <span id="w-counter" style="margin-left:auto;font-size:11px;color:${C.mut};">${done}/${tot}</span>
+    </div>
+
+    <div style="background:#e8ddd0;border-radius:99px;height:4px;overflow:hidden;margin-bottom:10px;">
+      <div id="w-pbar" style="width:${tot>0?Math.round(done/tot*100):0}%;height:100%;background:${C.org};transition:width .3s;"></div>
+    </div>
+
+    <div id="w-chips" style="display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;">${renderChips()}</div>
+
+    <div style="background:${C.osf};border:1px solid #eecdb8;border-radius:14px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:9px;color:${C.org};letter-spacing:.14em;font-weight:700;margin-bottom:8px;">FEEL GUIDE</div>
+      <div style="display:grid;grid-template-columns:36px 1fr 60px;gap:2px 8px;align-items:center;">
+        <span style="font-size:8px;color:${C.fnt};">Feel</span>
+        <span style="font-size:8px;color:${C.fnt};">Reps left in tank</span>
+        <span style="font-size:8px;color:${C.fnt};text-align:right;">Rest</span>
+        ${FEELS.map(f=>`
+        <span style="font-size:10px;font-weight:700;color:${FC[f]};padding:2px 0;">${f}</span>
+        <span style="font-size:10px;color:${C.mut};">${{Easy:"4+ more reps",Med:"2–3 more reps",Hard:"1 more rep ← target",Max:"Limit — drop weight"}[f]}</span>
+        <span style="font-size:10px;color:${C.mut};text-align:right;">${{Easy:"1–1.5m",Med:"2m",Hard:"2.5–3m",Max:"3m+"}[f]}</span>`).join("")}
+      </div>
+    </div>
+
+    <div style="font-size:10px;color:${C.mut};margin-bottom:10px;">${slots.map(s=>s.area).join(" → ")}</div>
+
+    <div id="w-cards" style="display:flex;flex-direction:column;gap:10px;">${renderCards_()}</div>
+
+    <div style="background:${C.osf};border:1px solid #eecdb8;border-radius:14px;padding:14px;margin-top:12px;">
+      <div style="font-size:9px;color:${C.org};letter-spacing:.14em;font-weight:700;margin-bottom:6px;">YOUR PLAN</div>
+      <div style="font-size:11px;color:${C.mut};line-height:1.8;">
+        📅 Jun 29 – Jul 24 · 4-week block<br/>
+        ⚖️ Goal: <strong style="color:${C.txt};">68–70 kg by Jul 21</strong><br/>
+        🔁 A→B→A→B · ⏱ 2–3 min rest between sets
+      </div>
+    </div>
+
+    <button id="w-save" onclick="wSave()" style="margin-top:12px;width:100%;padding:13px 0;border-radius:12px;border:none;background:${C.org};color:#fff;font-family:'DM Mono',monospace;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:.08em;">SAVE SESSION</button>
+  </div>`;
+}
+
+function renderChips() {
+  return SESSIONS.map((d,i)=>{
+    const t=i%2===0?"A":"B", isSel=d===S.wDate, isT=d===today, has=!!S.sessions[d];
+    return `<button onclick="wDate('${d}')" style="flex-shrink:0;padding:4px 7px;border-radius:7px;border:none;cursor:pointer;background:${isSel?C.org:isT?C.osf:has?C.gsf:C.alt};color:${isSel?"#fff":isT?C.org:has?C.grn:C.mut};outline:${isT&&!isSel?"1px solid "+C.org:"none"};font-family:'DM Mono',monospace;font-size:9px;font-weight:700;line-height:1.5;">${fmtS(d)}<br/>${t}${has?" ✓":""}</button>`;
+  }).join("");
+}
+
+function renderCards_() {
+  return getSlots().map((slot,si)=>{
+    const oi=S.wSel[si]??0, sets=getSets(si), ac=AC[slot.area];
+    const allDone=sets.every(s=>s.feel);
+    return `<div style="background:${allDone?C.gsf:C.sur};border:1px solid ${allDone?"#c0d8b0":C.bor};border-radius:14px;padding:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="width:22px;height:22px;border-radius:50%;background:${ac};display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;" onclick="this.querySelector('span').focus()">
+          <span contenteditable="true" onblur="S.wNums[${si}]=this.textContent.trim()||'${si+1}';lsSave();" style="font-size:10px;font-weight:700;color:#fff;outline:none;min-width:6px;text-align:center;">${S.wNums[si]??si+1}</span>
+        </div>
+        <span style="font-size:9px;font-weight:700;letter-spacing:.12em;color:${ac};">${slot.area}</span>
+        ${allDone?`<span style="margin-left:auto;color:${C.grn};font-size:14px;">✓</span>`:""}
+      </div>
+      <select onchange="wEx(${si},parseInt(this.value))" style="width:100%;padding:7px 10px;border-radius:8px;margin-bottom:10px;border:1px solid ${oi===0?C.bor:ac+"66"};background:${oi===0?C.alt:ac+"11"};font-family:'DM Mono',monospace;font-weight:700;font-size:12px;color:${oi===0?C.txt:ac};cursor:pointer;outline:none;">
+        ${slot.options.map((o,i)=>`<option value="${i}" ${oi===i?"selected":""}>${["★ ","○ ","◇ "][i]||"◇ "}${o.name}${[" — primary"," — backup 1"," — backup 2"][i]||""}</option>`).join("")}
+      </select>
+      <div style="display:grid;grid-template-columns:38px 44px 44px 1fr;gap:4px;margin-bottom:4px;padding:0 6px;">
+        <span style="font-size:9px;color:${C.fnt};"></span>
+        <span style="font-size:9px;color:${C.fnt};text-align:center;display:block;">Reps</span>
+        <span style="font-size:9px;color:${C.fnt};text-align:center;display:block;">kg</span>
+        <span style="font-size:9px;color:${C.fnt};text-align:center;display:block;">Feel</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        ${sets.map((s,idx)=>{
+          const fc=s.feel?FC[s.feel]:null;
+          return `<div style="display:grid;grid-template-columns:38px 44px 44px 1fr;gap:4px;align-items:center;padding:5px 6px;border-radius:7px;background:${fc?fc+"15":C.alt};border:1px solid ${fc?fc+"44":"transparent"};">
+            <span style="font-size:9px;color:${C.fnt};">Set ${s.set}</span>
+            <input type="number" value="${s.reps}" placeholder="${slot.reps}" onchange="wSet(${si},${idx},'reps',this.value)"
+              style="width:44px;background:${C.sur};border:1px solid ${C.bor};border-radius:6px;color:${C.txt};font-family:'DM Mono',monospace;font-size:12px;padding:4px 6px;text-align:center;"/>
+            <input type="number" value="${s.weight}" placeholder="kg" onchange="wSet(${si},${idx},'weight',this.value)"
+              style="width:44px;background:${C.sur};border:1px solid ${C.bor};border-radius:6px;color:${C.txt};font-family:'DM Mono',monospace;font-size:12px;padding:4px 6px;text-align:center;"/>
+            <div style="display:flex;gap:3px;">
+              ${FEELS.map(f=>`<button onclick="wSet(${si},${idx},'feel','${s.feel===f?"":f}')" style="flex:1;padding:3px 0;border-radius:5px;border:1px solid ${s.feel===f?FC[f]:C.bor};background:${s.feel===f?FC[f]:"transparent"};color:${s.feel===f?"#fff":C.fnt};font-family:'DM Mono',monospace;font-size:9px;font-weight:700;cursor:pointer;">${f}</button>`).join("")}
+            </div>
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderCards() {
+  const el=document.getElementById("w-cards");
+  if(el) el.innerHTML=renderCards_();
+}
+
+function updateProgressBar() {
+  const slots=getSlots();
+  let tot=0,done=0;
+  slots.forEach((_,i)=>{const s=getSets(i);tot+=s.length;done+=s.filter(x=>x.feel).length;});
+  const bar=document.getElementById("w-pbar");
+  if(bar) bar.style.width=(tot>0?Math.round(done/tot*100):0)+"%";
+  const ctr=document.getElementById("w-counter");
+  if(ctr) ctr.textContent=done+"/"+tot;
+}
+
+// ── NUTRITION TAB ──────────────────────────────────────────────────────────
+function macroCards(tot) {
+  return [{k:"calories",l:"Calories",t:NUT.calories,u:"kcal",c:C.org},
+          {k:"protein", l:"Protein", t:NUT.protein, u:"g",   c:C.grn},
+          {k:"carbs",   l:"Carbs",   t:NUT.carbs,   u:"g",   c:"#b07820"},
+          {k:"fat",     l:"Fat",     t:NUT.fat,     u:"g",   c:C.pur}].map(m=>{
+    const v=tot[m.k]||0, p=Math.min(Math.round(v/m.t*100),100);
+    return `<div style="background:${C.sur};border:1px solid ${C.bor};border-radius:14px;padding:12px;">
+      <div style="font-size:9px;color:${m.c};letter-spacing:.14em;font-weight:700;margin-bottom:4px;">${m.l}</div>
+      <div style="font-size:20px;font-weight:700;color:${m.c};margin-bottom:6px;">${Math.round(v)}<span style="font-size:10px;color:${C.mut};margin-left:2px;">${m.u}</span></div>
+      <div style="background:#e8ddd0;border-radius:99px;height:4px;overflow:hidden;"><div style="width:${p}%;height:100%;background:${m.c};"></div></div>
+      <div style="font-size:9px;color:${C.fnt};margin-top:3px;">${p}% · target ${m.t}</div>
+    </div>`;
+  }).join("");
+}
+
+function calcTot() {
+  return S.nMeals.reduce((a,m)=>({
+    calories:a.calories+(+m.calories||0), protein:a.protein+(+m.protein||0),
+    carbs:a.carbs+(+m.carbs||0),         fat:a.fat+(+m.fat||0)
+  }), {calories:0,protein:0,carbs:0,fat:0});
+}
+
+function renderNutritionTab() {
+  const saved=S.nutrition[S.nDate];
+  return `<div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <input type="date" value="${S.nDate}" onchange="nDate(this.value)"
+        style="background:${C.sur};border:1px solid ${C.bor};border-radius:6px;color:${C.txt};font-family:'DM Mono',monospace;font-size:12px;padding:4px 6px;"/>
+      ${saved?`<span style="font-size:10px;color:${C.grn};">✓ saved</span>`:""}
+    </div>
+    <div id="n-tots" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">${macroCards(calcTot())}</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${S.nMeals.map((meal,i)=>`
+        <div style="background:${C.sur};border:1px solid ${C.bor};border-radius:14px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <input value="${meal.name}" placeholder="Meal ${i+1}" onchange="nName(${i},this.value)"
+              style="background:transparent;border:none;outline:none;font-family:'DM Mono',monospace;font-weight:700;font-size:13px;color:${C.txt};flex:1;"/>
+            <button onclick="nDel(${i})" style="background:none;border:none;color:${C.fnt};cursor:pointer;font-size:18px;line-height:1;">×</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+            ${["calories","protein","carbs","fat"].map(f=>`
+              <div>
+                <div style="font-size:9px;color:${C.fnt};margin-bottom:3px;">${f.slice(0,4).toUpperCase()}</div>
+                <input type="number" value="${meal[f]}" placeholder="0" onchange="nMeal(${i},'${f}',this.value)"
+                  style="width:100%;background:${C.alt};border:1px solid ${C.bor};border-radius:6px;color:${C.txt};font-family:'DM Mono',monospace;font-size:12px;padding:4px 6px;text-align:center;"/>
+              </div>`).join("")}
+          </div>
+        </div>`).join("")}
+    </div>
+    <button onclick="nAdd()" style="margin-top:8px;width:100%;padding:9px 0;border-radius:10px;border:1px dashed ${C.fnt};background:transparent;color:${C.mut};font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">+ add meal</button>
+    <button id="n-save" onclick="nSave()" style="margin-top:10px;width:100%;padding:13px 0;border-radius:12px;border:none;background:${C.org};color:#fff;font-family:'DM Mono',monospace;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:.08em;">SAVE DAY</button>
+  </div>`;
+}
+
+function updateNutTotals() {
+  const el=document.getElementById("n-tots");
+  if(el) el.innerHTML=macroCards(calcTot());
+}
+
+// ── PROGRESS TAB ───────────────────────────────────────────────────────────
+function renderProgressTab() {
+  const p=S.progress[S.pDate]||{}, nut=S.nutrition[S.pDate], ses=S.sessions[S.pDate];
+  const hist=Object.keys(S.progress).sort((a,b)=>b.localeCompare(a));
+
+  return `<div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <input type="date" value="${S.pDate}" onchange="pDate(this.value)"
+        style="background:${C.sur};border:1px solid ${C.bor};border-radius:6px;color:${C.txt};font-family:'DM Mono',monospace;font-size:12px;padding:4px 6px;"/>
+      ${S.progress[S.pDate]?`<span style="font-size:10px;color:${C.grn};">✓ saved</span>`:""}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      ${[{id:"p-w",l:"Body Weight",v:p.weight||"",u:"kg",c:C.org,ph:"61.5"},
+         {id:"p-sl",l:"Sleep",v:p.sleep||"",u:"hrs",c:C.pur,ph:"7.5"},
+         {id:"p-wa",l:"Water",v:p.water||"",u:"ml",c:C.blu,ph:"2000"},
+         {id:"p-st",l:"Steps",v:p.steps||"",u:"steps",c:C.grn,ph:"6000"}].map(f=>`
+        <div style="background:${C.sur};border:1px solid ${C.bor};border-radius:14px;padding:12px;">
+          <div style="font-size:9px;color:${f.c};letter-spacing:.14em;font-weight:700;margin-bottom:4px;">${f.l}</div>
+          <div style="display:flex;align-items:baseline;gap:4px;">
+            <input id="${f.id}" type="number" value="${f.v}" placeholder="${f.ph}"
+              style="width:100%;background:${C.alt};border:1px solid ${C.bor};border-radius:8px;color:${C.txt};font-family:'DM Mono',monospace;font-size:18px;font-weight:700;padding:7px 8px;"/>
+            <span style="font-size:10px;color:${C.mut};white-space:nowrap;">${f.u}</span>
+          </div>
+        </div>`).join("")}
+    </div>
+    <div style="background:${C.osf};border:1px solid #eecdb8;border-radius:14px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:9px;color:${C.org};letter-spacing:.14em;font-weight:700;margin-bottom:6px;">NUTRITION — FROM LOG</div>
+      ${nut?`<div style="display:flex;gap:14px;flex-wrap:wrap;">
+        ${[["calories","kcal",C.org],["protein","g protein",C.grn],["carbs","g carbs","#b07820"],["fat","g fat",C.pur]].map(([k,u,col])=>`
+          <div><div style="font-size:17px;font-weight:700;color:${col};">${Math.round(nut.totals[k])}</div><div style="font-size:9px;color:${C.mut};">${u}</div></div>`).join("")}
+      </div>`:`<div style="font-size:11px;color:${C.fnt};">No nutrition saved — log in Nutrition tab</div>`}
+    </div>
+    <div style="background:${C.sur};border:1px solid ${C.bor};border-radius:14px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:9px;color:${C.mut};letter-spacing:.14em;font-weight:700;margin-bottom:6px;">WORKOUT FEEL</div>
+      ${ses?ses.exercises.map(ex=>{
+        const feels=ex.sets.map(s=>s.feel).filter(Boolean);
+        const counts=FEELS.reduce((a,f)=>({...a,[f]:feels.filter(x=>x===f).length}),{});
+        const wts=[...new Set(ex.sets.map(s=>s.weight).filter(Boolean))];
+        return `<div style="margin-bottom:8px;">
+          <div style="font-size:11px;font-weight:700;color:${C.txt};margin-bottom:4px;">
+            <span style="font-size:9px;color:${AC[ex.area]||C.mut};margin-right:6px;">${ex.area}</span>${ex.name}${wts.length?`<span style="color:${C.mut};font-weight:400;"> · ${wts.join("/")} kg</span>`:""}
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">
+            ${FEELS.map(f=>counts[f]>0?`<span style="padding:2px 8px;border-radius:5px;font-size:10px;background:${FC[f]}22;color:${FC[f]};font-weight:700;border:1px solid ${FC[f]}44;">${f} ×${counts[f]}</span>`:"").join("")}
+            ${feels.length===0?`<span style="font-size:10px;color:${C.fnt};">no feel logged</span>`:""}
+          </div>
+        </div>`;
+      }).join(""):`<div style="font-size:11px;color:${C.fnt};">No workout saved for this date</div>`}
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="font-size:9px;color:${C.mut};letter-spacing:.14em;font-weight:700;margin-bottom:4px;">DAY NOTE</div>
+      <textarea id="p-no" placeholder="e.g. felt tired, ate out, rest day..." rows="2"
+        style="width:100%;background:${C.sur};border:1px solid ${C.bor};border-radius:10px;color:${C.mut};padding:9px 12px;font-family:'DM Mono',monospace;font-size:12px;resize:none;">${p.note||""}</textarea>
+    </div>
+    <button id="p-save" onclick="pSave()" style="width:100%;padding:13px 0;border-radius:12px;border:none;background:${C.org};color:#fff;font-family:'DM Mono',monospace;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:.08em;">SAVE PROGRESS</button>
+    ${hist.length?`<div style="margin-top:20px;">
+      <div style="font-size:9px;color:${C.mut};letter-spacing:.14em;font-weight:700;margin-bottom:8px;">HISTORY</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${hist.map(d=>{
+          const e=S.progress[d],ns=S.sessions[d],nn=S.nutrition[d];
+          return `<div style="background:${C.sur};border:1px solid ${C.bor};border-radius:14px;padding:12px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+              <span style="font-size:12px;font-weight:700;color:${C.txt};">${fmtL(d)}</span>
+              ${ns?`<span style="font-size:10px;color:${C.org};">Workout ${ns.workoutType}</span>`:""}
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:${e.note?8:0}px;">
+              ${e.weight?`<div><div style="font-size:15px;font-weight:700;color:${C.org};">${e.weight} kg</div><div style="font-size:9px;color:${C.mut};">weight</div></div>`:""}
+              ${e.sleep?`<div><div style="font-size:15px;font-weight:700;color:${C.pur};">${e.sleep} hrs</div><div style="font-size:9px;color:${C.mut};">sleep</div></div>`:""}
+              ${e.water?`<div><div style="font-size:15px;font-weight:700;color:${C.blu};">${e.water} ml</div><div style="font-size:9px;color:${C.mut};">water</div></div>`:""}
+              ${e.steps?`<div><div style="font-size:15px;font-weight:700;color:${C.grn};">${e.steps}</div><div style="font-size:9px;color:${C.mut};">steps</div></div>`:""}
+              ${nn?`<div><div style="font-size:15px;font-weight:700;color:${C.org};">${Math.round(nn.totals.calories)} kcal</div><div style="font-size:9px;color:${C.mut};">calories</div></div>`:""}
+            </div>
+            ${e.note?`<div style="font-size:11px;color:${C.mut};font-style:italic;border-top:1px solid ${C.bor};padding-top:6px;">📝 ${e.note}</div>`:""}
+          </div>`;
+        }).join("")}
+      </div>
+    </div>`:""}
+  </div>`;
+}
+
+// ── DRIVE BAR ──────────────────────────────────────────────────────────────
+function renderDriveBar() { return ""; }
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+async function init() {
+  lsLoad();   // instant local render
+  render();
+  try {
+    await sbInit();
+    await sbLoad();  // override with cloud data
+    render();        // re-render with synced state
+    S.syncStatus = "synced";
+    renderSyncBadge();
+  } catch(e) {
+    console.warn("Cloud sync unavailable:", e);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
