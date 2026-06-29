@@ -72,7 +72,7 @@ button { -webkit-appearance: none; cursor: pointer; }
 .badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
 
 /* SET ROW */
-.set-row { display: grid; grid-template-columns: 36px 46px 46px 1fr 48px; gap: 3px; align-items: center; padding: 5px 8px; border-radius: 8px; }
+.set-row { display: grid; grid-template-columns: 36px 46px 46px 70px 52px; gap: 3px; align-items: center; padding: 5px 8px; border-radius: 8px; }
 
 /* CELL INPUT */
 .cell-inp { border: 0.5px solid var(--border); border-radius: 6px; background: var(--card); color: var(--txt); font-size: 13px; font-weight: 500; padding: 6px 3px; text-align: center; outline: none; width: 100%; }
@@ -120,6 +120,7 @@ const SLOTS = {
 const AREA_COLOR  = {"Chest":"#ff6b35","Back Pull":"#185FA5","Back Row":"#0C447C","Legs":"#34c759","Shoulder":"#af52de"};
 const FEEL_COLOR  = {Easy:"#34c759",Med:"#ff9f0a",Hard:"#ff6b35",Max:"#ff3b30"};
 const FEEL_REST   = {Easy:60,Med:90,Hard:150,Max:180};
+const FEEL_DESC   = {Easy:"4+ reps in tank",Med:"2–3 reps left",Hard:"1 rep left — target",Max:"Hit limit"};
 const FEELS       = ["Easy","Med","Hard","Max"];
 const NUT_TARGET  = {calories:2600,protein:105,carbs:300,fat:80};
 
@@ -136,6 +137,7 @@ function defaultMeals() {
 
 let S = {
   tab:"workout", height:"172", weight:"—",
+  feelPicker:null,
   wDate:nearestSession(), wManual:null, wSel:{}, wOrder:{},
   wNums:{0:"1",1:"2",2:"3",3:"4"},
   wSets:{
@@ -287,9 +289,6 @@ async function sbInit() {
     const {data:{session}} = await _sb.auth.getSession();
     if (session && !session.user.is_anonymous) {
       _userId = session.user.id;
-    } else {
-      if (session) await _sb.auth.signOut();
-      showLoginScreen();
     }
   } catch(e) { console.warn("Supabase init failed:",e); }
 }
@@ -328,7 +327,8 @@ async function sbSave() {
 
 function renderSyncBadge() {
   const el = document.getElementById("sync-badge"); if (!el) return;
-  const map = {idle:["",""],syncing:["↑","#ff9f0a"],synced:["✓","#34c759"],error:["⚠","#ff3b30"]};
+  if (!_userId) { el.textContent = "Sign in to sync"; return; }
+  const map = {idle:["",""],syncing:["↑ syncing","#ff9f0a"],synced:["✓ synced","#34c759"],error:["⚠ error","#ff3b30"]};
   const [t,c] = map[S.syncStatus]||["",""];
   el.textContent = t; el.style.color = c;
 }
@@ -392,7 +392,8 @@ function showLoginScreen() {
       </div>
       <button onclick="sendMagicLink()" class="btn-full btn-acc" id="login-btn" style="margin-top:4px;">SEND MAGIC LINK</button>
       <div id="login-msg" style="margin-top:16px;font-size:13px;color:var(--sub);text-align:center;line-height:1.5;"></div>
-      <div style="margin-top:40px;padding-top:24px;border-top:1px solid var(--border);font-size:12px;color:var(--faint);text-align:center;line-height:1.7;">
+      <button onclick="render();renderNav();" style="width:100%;margin-top:12px;padding:13px;border-radius:14px;border:1.5px solid var(--border);background:transparent;color:var(--sub);font-size:14px;font-weight:600;cursor:pointer;">Continue without account</button>
+      <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border);font-size:12px;color:var(--faint);text-align:center;line-height:1.7;">
         We'll email you a one-tap sign-in link.<br/>No password ever needed.
       </div>
     </div>
@@ -441,12 +442,18 @@ function wMoveBlock(dispIdx, dir) {
   renderCards();
 }
 
+function openFeelPicker(si, idx) {
+  S.feelPicker = (S.feelPicker && S.feelPicker.si===si && S.feelPicker.idx===idx) ? null : {si, idx};
+  renderCards();
+}
+
 function wSet(si, idx, field, val) {
   const key = S.wDate+"_"+si;
   if (!S.wSets[key]) S.wSets[key] = mkSets(getSlots()[si].sets);
   S.wSets[key][idx][field] = val;
   if (field === "feel" && val) {
     S.wSets[key][idx].rest = FEEL_REST[val] || 90;
+    S.feelPicker = null;
     startRestTimer(val);
   }
   renderCards();
@@ -497,22 +504,13 @@ function render() {
 }
 
 function renderTopBar() {
+  const syncTap = _userId ? "" : "onclick=\"showLoginScreen()\" title=\"Sign in to sync\"";
   return `<div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:rgba(240,244,248,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:50;border-bottom:1px solid var(--border);">
     <div>
       <div style="font-size:20px;font-weight:800;color:var(--txt);letter-spacing:-.4px;">${{workout:"Workout",nutrition:"Nutrition",progress:"Progress"}[S.tab]}</div>
       <div style="font-size:11px;color:var(--sub);margin-top:1px;">Target 68–70 kg · Jun–Jul 2026</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
-      <span id="sync-badge" style="font-size:11px;font-weight:600;"></span>
-      <div style="text-align:right;">
-        <div style="font-size:13px;font-weight:700;color:var(--txt);">
-          <span contenteditable="true" onblur="S.weight=this.textContent.trim();lsSave();" style="outline:none;border-bottom:1.5px dashed var(--faint);">${S.weight}</span> kg
-        </div>
-        <div style="font-size:11px;color:var(--sub);">
-          <span contenteditable="true" onblur="S.height=this.textContent.trim();lsSave();" style="outline:none;border-bottom:1.5px dashed var(--faint);">${S.height}</span> cm
-        </div>
-      </div>
-    </div>
+    <span id="sync-badge" ${syncTap} style="font-size:11px;font-weight:600;cursor:${_userId?"default":"pointer"};padding:4px 8px;border-radius:6px;${_userId?"":"background:var(--acc-soft);color:var(--acc);"}"></span>
   </div>`;
 }
 
@@ -618,7 +616,7 @@ function renderCards_() {
       <!-- Set table -->
       <div style="padding:6px 8px 10px;">
         <!-- Column headers -->
-        <div style="display:grid;grid-template-columns:36px 46px 46px 1fr 48px;gap:3px;padding:0 2px 4px;font-size:9px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;">
+        <div style="display:grid;grid-template-columns:36px 46px 46px 70px 52px;gap:3px;padding:0 2px 4px;font-size:9px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;">
           <span></span>
           <span style="text-align:center;">Reps</span>
           <span style="text-align:center;">kg</span>
@@ -629,24 +627,32 @@ function renderCards_() {
         <div style="display:flex;flex-direction:column;gap:3px;">
           ${sets.map((s,idx)=>{
             const fc = s.feel ? FEEL_COLOR[s.feel] : null;
+            const pickerOpen = S.feelPicker && S.feelPicker.si===si && S.feelPicker.idx===idx;
             return `<div class="set-row" style="background:${fc?fc+"14":"transparent"};border:0.5px solid ${fc?fc+"33":"transparent"};">
               <span style="font-size:9px;font-weight:700;color:var(--faint);white-space:nowrap;">Set ${s.set}</span>
               <input type="number" value="${s.reps}" placeholder="—"
                 onchange="wSet(${si},${idx},'reps',this.value)" class="cell-inp"/>
               <input type="number" value="${s.weight}" placeholder="—"
                 onchange="wSet(${si},${idx},'weight',this.value)" class="cell-inp"/>
-              <div class="feel-wrap" style="--fw-bg:${fc?fc:"var(--bg)"};--fw-color:${fc?"#fff":"var(--faint)"};--fw-border:${fc?fc:"var(--border)"};--fw-arrow:${fc?"rgba(255,255,255,.6)":"var(--faint)"};">
-                <select onchange="wSet(${si},${idx},'feel',this.value)"
-                  style="border-color:${fc?fc:"var(--border)"};background:${fc?fc:"var(--bg)"};color:${fc?"#fff":"var(--faint)"};">
-                  <option value="">Feel</option>
-                  ${FEELS.map(f=>`<option value="${f}" ${s.feel===f?"selected":""}>${f}</option>`).join("")}
-                </select>
-                <span style="position:absolute;right:5px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:9px;color:${fc?"rgba(255,255,255,.6)":"var(--faint)"};">▾</span>
-              </div>
-              <div class="rest-cell" style="border-color:${s.rest?fc||"var(--border)":"var(--border)"};background:${s.rest?fc+"14":"var(--bg)"};color:${s.rest?fc||"var(--faint)":"var(--faint)"};">
+              <button onclick="openFeelPicker(${si},${idx})"
+                style="border:1px solid ${fc?fc:"var(--border)"};background:${fc?fc:"var(--bg)"};color:${fc?"#fff":"var(--faint)"};border-radius:8px;padding:5px 6px;font-size:11px;font-weight:700;cursor:pointer;width:100%;text-align:center;">
+                ${s.feel||"Feel"}${fc?"":""}
+              </button>
+              <div class="rest-cell" style="border-color:${s.rest&&fc?fc:"var(--border)"};background:${s.rest&&fc?fc+"14":"var(--bg)"};color:${s.rest&&fc?fc:"var(--faint)"};">
                 ${s.rest ? fmtRest(s.rest) : "—"}
               </div>
-            </div>`;
+            </div>
+            ${pickerOpen?`<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin:4px 0 6px;overflow:hidden;">
+              <div style="padding:10px 12px 6px;font-size:12px;font-weight:700;color:var(--sub);">Set ${s.set} — how did it feel?</div>
+              ${FEELS.map(f=>{const fc2=FEEL_COLOR[f];const sel=s.feel===f;return `<div onclick="wSet(${si},${idx},'feel','${f}')"
+                style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:${sel?fc2+"18":"transparent"};border-top:1px solid var(--border);cursor:pointer;">
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:${fc2};">${f}</div>
+                  <div style="font-size:11px;color:var(--sub);margin-top:1px;">${FEEL_DESC[f]} · ${fmtRest(FEEL_REST[f])} rest</div>
+                </div>
+                ${sel?`<div style="width:18px;height:18px;border-radius:50%;background:${fc2};display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">✓</div>`:`<div style="width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border);"></div>`}
+              </div>`;}).join("")}
+            </div>`:""}`;
           }).join("")}
         </div>
       </div>
@@ -866,13 +872,17 @@ async function init() {
   render();
   try {
     await sbInit();
-    if (!_userId) return;
-    await sbLoad();
-    render();
-    S.syncStatus = "synced";
-    renderSyncBadge();
+    if (_userId) {
+      await sbLoad();
+      render();
+      S.syncStatus = "synced";
+      renderSyncBadge();
+    } else {
+      renderSyncBadge();
+    }
   } catch(e) {
     console.warn("Cloud sync unavailable:", e);
+    renderSyncBadge();
   }
 }
 
