@@ -131,15 +131,58 @@ async function sbInit() {
   if (SUPABASE_URL === "YOUR_SUPABASE_URL") return;
   try {
     _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Handle magic link redirect (token in URL hash)
+    if (location.hash.includes("access_token")) {
+      await _sb.auth.exchangeCodeForSession(location.hash);
+      history.replaceState(null, "", location.pathname);
+    }
+
     const { data: { session } } = await _sb.auth.getSession();
     if (session) {
       _userId = session.user.id;
     } else {
-      const { data } = await _sb.auth.signInAnonymously();
-      _userId = data?.user?.id ?? null;
+      showLoginScreen();
     }
   } catch(e) {
     console.warn("Supabase init failed:", e);
+  }
+}
+
+function showLoginScreen() {
+  document.getElementById("app").innerHTML = `
+    <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+      <div style="width:100%;max-width:340px;">
+        <div style="font-size:9px;color:#d4622a;letter-spacing:.2em;margin-bottom:8px;">BULK TRACKER · 2026</div>
+        <div style="font-size:22px;font-weight:700;color:#1c1610;margin-bottom:4px;">Sign in</div>
+        <div style="font-size:12px;color:#8c7e6e;margin-bottom:28px;">Enter your email — we'll send a magic link. No password needed.</div>
+        <input id="login-email" type="email" placeholder="your@email.com" autocomplete="email"
+          style="width:100%;padding:12px 14px;border-radius:10px;border:1px solid #e5ddd3;background:#fff;font-family:'DM Mono',monospace;font-size:14px;color:#1c1610;margin-bottom:10px;outline:none;"/>
+        <button id="login-btn" onclick="sendMagicLink()"
+          style="width:100%;padding:13px 0;border-radius:12px;border:none;background:#d4622a;color:#fff;font-family:'DM Mono',monospace;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:.08em;">
+          SEND MAGIC LINK
+        </button>
+        <div id="login-msg" style="margin-top:12px;font-size:11px;color:#8c7e6e;text-align:center;"></div>
+      </div>
+    </div>`;
+}
+
+async function sendMagicLink() {
+  const email = document.getElementById("login-email")?.value?.trim();
+  if (!email) return;
+  const btn = document.getElementById("login-btn");
+  const msg = document.getElementById("login-msg");
+  btn.textContent = "SENDING…"; btn.disabled = true;
+  const { error } = await _sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: location.origin + location.pathname }
+  });
+  if (error) {
+    msg.textContent = "Error: " + error.message;
+    btn.textContent = "SEND MAGIC LINK"; btn.disabled = false;
+  } else {
+    msg.textContent = "✓ Check your email and tap the link!";
+    btn.textContent = "SENT ✓"; btn.style.background = "#4a7a3a";
   }
 }
 
