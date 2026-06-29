@@ -781,12 +781,13 @@ function renderDriveBar() { return ""; }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
 async function init() {
-  lsLoad();   // instant local render
+  lsLoad();
   render();
   try {
     await sbInit();
-    await sbLoad();  // override with cloud data
-    render();        // re-render with synced state
+    if (!_userId) return; // login screen is showing, stop here
+    await sbLoad();
+    render();
     S.syncStatus = "synced";
     renderSyncBadge();
   } catch(e) {
