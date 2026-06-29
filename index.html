@@ -29,21 +29,20 @@
   color-scheme: light;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { background: var(--bg); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; padding-bottom: 90px; }
-#app { max-width: 480px; margin: 0 auto; }
-#nav { max-width: 480px; left: 50%; transform: translateX(-50%); right: auto; width: 100%; }
+body { background: var(--bg); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; }
 input, select, textarea, button { font-family: inherit; }
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 input[type=date]::-webkit-calendar-picker-indicator { opacity: 0.4; }
 button { -webkit-appearance: none; cursor: pointer; }
 
-/* NAV */
+/* ── MOBILE layout (default) ── */
+body { padding-bottom: 90px; }
+#app { width: 100%; }
 #nav {
   position: fixed; bottom: 0; left: 0; right: 0;
   background: rgba(255,255,255,0.96);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
   display: flex;
   padding: 8px 0 max(16px, env(safe-area-inset-bottom));
@@ -52,6 +51,29 @@ button { -webkit-appearance: none; cursor: pointer; }
 .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; padding: 4px 0; }
 .nav-icon { font-size: 20px; line-height: 1; }
 .nav-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; }
+
+/* ── DESKTOP layout (≥ 640px) ── */
+@media (min-width: 640px) {
+  body { padding-bottom: 0; display: flex; }
+  #nav {
+    position: fixed; top: 0; left: 0; bottom: 0; right: auto; width: 200px;
+    flex-direction: column; justify-content: flex-start; align-items: stretch;
+    border-top: none; border-right: 1px solid var(--border);
+    padding: 24px 0 24px;
+    background: var(--card);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  #nav .nav-brand {
+    padding: 0 20px 20px; font-size: 16px; font-weight: 800; color: var(--txt);
+    border-bottom: 1px solid var(--border); margin-bottom: 10px;
+  }
+  .nav-btn { flex: none; flex-direction: row; justify-content: flex-start; align-items: center; gap: 10px; padding: 11px 20px; border-radius: 0; }
+  .nav-btn:hover { background: var(--bg); }
+  .nav-btn.active { background: var(--acc-soft); }
+  .nav-icon { font-size: 18px; }
+  .nav-label { font-size: 13px; font-weight: 600; letter-spacing: 0; }
+  #app { margin-left: 200px; max-width: 720px; padding: 0 24px; }
+}
 
 /* CARDS */
 .card { background: var(--card); border-radius: 12px; border: 0.5px solid var(--border); overflow: hidden; }
@@ -496,9 +518,12 @@ async function doLogin() {
 // ── NAV ────────────────────────────────────────────────────────────────────
 function renderNav() {
   const tabs = [["workout","🏋️","Workout"],["nutrition","🥗","Nutrition"],["progress","📈","Progress"]];
-  document.getElementById("nav").style.display = "flex";
-  document.getElementById("nav").innerHTML = tabs.map(([t,icon,label])=>`
-    <button class="nav-btn" onclick="S.tab='${t}';render();">
+  const el = document.getElementById("nav");
+  el.style.display = "flex";
+  const isDesktop = window.innerWidth >= 640;
+  el.innerHTML = (isDesktop ? `<div class="nav-brand">🏋️ Bulk Tracker</div>` : "") +
+    tabs.map(([t,icon,label])=>`
+    <button class="nav-btn${S.tab===t?" active":""}" onclick="S.tab='${t}';render();">
       <span class="nav-icon">${icon}</span>
       <span class="nav-label" style="color:${S.tab===t?"var(--acc)":"var(--faint)"};">${label}</span>
     </button>`).join("");
@@ -985,6 +1010,7 @@ async function init() {
 }
 
 init();
+window.addEventListener("resize", () => { if (document.getElementById("nav").style.display !== "none") renderNav(); });
 </script>
 </body>
 </html>
