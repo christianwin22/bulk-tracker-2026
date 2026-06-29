@@ -222,8 +222,12 @@ async function sbInit() {
       history.replaceState(null,"",location.pathname);
     }
     const { data:{session} } = await _sb.auth.getSession();
-    if (session) { _userId = session.user.id; }
-    else { showLoginScreen(); }
+    if (session && !session.user.is_anonymous) {
+      _userId = session.user.id;
+    } else {
+      if (session) await _sb.auth.signOut(); // clear anonymous session
+      showLoginScreen();
+    }
   } catch(e) { console.warn("Supabase init failed:",e); }
 }
 
