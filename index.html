@@ -399,43 +399,94 @@ function getOrder()  {
 }
 
 // ── LOGIN SCREEN ───────────────────────────────────────────────────────────
+let _loginMode = "signin"; // "signin" | "signup"
+
 function showLoginScreen() {
   document.getElementById("nav").style.display = "none";
   document.getElementById("app").innerHTML = `
-  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:var(--bg);">
-    <div style="width:100%;max-width:360px;">
-      <div style="width:56px;height:56px;background:var(--acc);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;font-size:28px;">🏋️</div>
-      <div style="font-size:28px;font-weight:800;color:var(--txt);margin-bottom:6px;letter-spacing:-.5px;">Bulk Tracker</div>
-      <div style="font-size:15px;color:var(--sub);margin-bottom:40px;line-height:1.5;">Sign in to sync your workouts across all your devices.</div>
-      <div style="margin-bottom:12px;">
-        <div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:6px;">EMAIL</div>
+  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px 48px;background:var(--bg);">
+    <div style="width:100%;max-width:340px;">
+      <div style="text-align:center;margin-bottom:32px;">
+        <div style="width:64px;height:64px;background:var(--acc);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:32px;">🏋️</div>
+        <div style="font-size:26px;font-weight:800;color:var(--txt);letter-spacing:-.5px;">Bulk Tracker</div>
+        <div style="font-size:14px;color:var(--sub);margin-top:6px;">Track every set. Hit your bulk.</div>
+      </div>
+      <div style="display:flex;background:var(--border);border-radius:10px;padding:2px;margin-bottom:24px;">
+        <button id="tab-signin" onclick="setLoginMode('signin')"
+          style="flex:1;padding:8px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:${_loginMode==='signin'?'var(--card)':'transparent'};color:${_loginMode==='signin'?'var(--txt)':'var(--sub)'};">
+          Sign in
+        </button>
+        <button id="tab-signup" onclick="setLoginMode('signup')"
+          style="flex:1;padding:8px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:${_loginMode==='signup'?'var(--card)':'transparent'};color:${_loginMode==='signup'?'var(--txt)':'var(--sub)'};">
+          Create account
+        </button>
+      </div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Email</div>
         <input id="login-email" type="email" placeholder="your@email.com" autocomplete="email"
-          class="inp" style="font-size:16px;padding:14px 16px;"
-          onkeydown="if(event.key==='Enter') sendMagicLink()"/>
+          class="inp" style="font-size:15px;padding:13px 14px;width:100%;"
+          onkeydown="if(event.key==='Enter')document.getElementById('login-pw').focus()"/>
       </div>
-      <button onclick="sendMagicLink()" class="btn-full btn-acc" id="login-btn" style="margin-top:4px;">SEND MAGIC LINK</button>
-      <div id="login-msg" style="margin-top:16px;font-size:13px;color:var(--sub);text-align:center;line-height:1.5;"></div>
-      <button onclick="render();renderNav();" style="width:100%;margin-top:12px;padding:13px;border-radius:14px;border:1.5px solid var(--border);background:transparent;color:var(--sub);font-size:14px;font-weight:600;cursor:pointer;">Continue without account</button>
-      <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--border);font-size:12px;color:var(--faint);text-align:center;line-height:1.7;">
-        We'll email you a one-tap sign-in link.<br/>No password ever needed.
+      <div style="margin-bottom:20px;">
+        <div style="font-size:11px;font-weight:700;color:var(--sub);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em;">Password</div>
+        <input id="login-pw" type="password" placeholder="••••••••" autocomplete="${_loginMode==='signin'?'current-password':'new-password'}"
+          class="inp" style="font-size:15px;padding:13px 14px;width:100%;"
+          onkeydown="if(event.key==='Enter')doLogin()"/>
       </div>
+      <button onclick="doLogin()" class="btn-full btn-acc" id="login-btn" style="font-size:15px;padding:14px;">
+        ${_loginMode==='signin'?'Sign in':'Create account'}
+      </button>
+      <div id="login-msg" style="margin-top:14px;font-size:13px;color:var(--sub);text-align:center;line-height:1.5;min-height:20px;"></div>
     </div>
   </div>`;
 }
 
-async function sendMagicLink() {
+function setLoginMode(mode) {
+  _loginMode = mode;
+  showLoginScreen();
+  setTimeout(()=>{ document.getElementById('login-email')?.focus(); },50);
+}
+
+async function doLogin() {
   const email = document.getElementById("login-email")?.value?.trim();
-  if (!email) return;
+  const pw    = document.getElementById("login-pw")?.value;
+  if (!email || !pw) { document.getElementById("login-msg").innerHTML = `<span style="color:var(--red);">Please enter email and password.</span>`; return; }
   const btn = document.getElementById("login-btn");
   const msg = document.getElementById("login-msg");
-  btn.textContent = "Sending…"; btn.disabled = true; btn.style.opacity = ".7";
-  const {error} = await _sb.auth.signInWithOtp({email, options:{emailRedirectTo:location.origin+location.pathname}});
+  btn.textContent = _loginMode==="signin" ? "Signing in…" : "Creating account…";
+  btn.disabled = true; btn.style.opacity = ".7";
+
+  let error;
+  if (_loginMode === "signin") {
+    const res = await _sb.auth.signInWithPassword({email, password:pw});
+    error = res.error;
+    if (!error) {
+      _userId = res.data.session.user.id;
+      _userEmail = res.data.session.user.email || "";
+      _userInitials = _userEmail.slice(0,2).toUpperCase();
+    }
+  } else {
+    const res = await _sb.auth.signUp({email, password:pw});
+    error = res.error;
+    if (!error && res.data.session) {
+      _userId = res.data.session.user.id;
+      _userEmail = res.data.session.user.email || "";
+      _userInitials = _userEmail.slice(0,2).toUpperCase();
+    } else if (!error) {
+      msg.innerHTML = `<span style="color:var(--grn);">✓ Check your email to confirm your account.</span>`;
+      btn.textContent = "Create account"; btn.disabled = false; btn.style.opacity = "1";
+      return;
+    }
+  }
+
   if (error) {
     msg.innerHTML = `<span style="color:var(--red);">${error.message}</span>`;
-    btn.textContent = "SEND MAGIC LINK"; btn.disabled = false; btn.style.opacity = "1";
+    btn.textContent = _loginMode==="signin"?"Sign in":"Create account";
+    btn.disabled = false; btn.style.opacity = "1";
   } else {
-    msg.innerHTML = `<strong style="color:var(--grn);">✓ Link sent!</strong><br/>Check your inbox and tap the link to sign in.`;
-    btn.textContent = "LINK SENT ✓"; btn.style.background = "var(--grn)";
+    await sbSave();
+    await sbLoad();
+    render(); renderNav();
   }
 }
 
@@ -531,19 +582,6 @@ function renderTopBar() {
     <div>
       <div style="font-size:20px;font-weight:800;color:var(--txt);letter-spacing:-.4px;">${{workout:"Workout",nutrition:"Nutrition",progress:"Progress"}[S.tab]}</div>
       <div style="font-size:11px;color:var(--sub);margin-top:1px;">Target 68–70 kg · Jun–Jul 2026</div>
-    </div>
-    ${_userId
-      ? `<div id="avatar-btn" onclick="toggleProfileMenu()" style="width:30px;height:30px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;">${_userInitials}</div>`
-      : `<button onclick="showLoginScreen()" style="padding:5px 12px;border-radius:7px;background:var(--acc-soft);color:var(--acc);border:none;font-size:12px;font-weight:700;cursor:pointer;">Sign in</button>`
-    }
-  </div>
-  <div id="profile-menu" style="display:none;position:fixed;top:54px;right:12px;background:var(--card);border:0.5px solid var(--border);border-radius:12px;width:210px;z-index:200;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12);">
-    <div style="padding:12px 14px;border-bottom:0.5px solid var(--border);">
-      <div style="font-size:13px;font-weight:700;color:var(--txt);">${_userId ? _userEmail : ""}</div>
-      <div style="font-size:11px;color:var(--sub);margin-top:1px;">Syncing to cloud</div>
-    </div>
-    <div onclick="doSignOut()" style="padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:#ff3b30;">
-      <span style="font-size:15px;">↩</span> Sign out
     </div>
   </div>`;
 }
@@ -908,20 +946,19 @@ function renderProgressTab() {
 async function init() {
   lsLoad();
   resumeTimerIfActive();
-  render();
   try {
     await sbInit();
     if (_userId) {
       await sbLoad();
-      render();
+      render(); renderNav();
       S.syncStatus = "synced";
       renderSyncBadge();
     } else {
-      renderSyncBadge();
+      showLoginScreen();
     }
   } catch(e) {
-    console.warn("Cloud sync unavailable:", e);
-    renderSyncBadge();
+    console.warn("Supabase unavailable:", e);
+    showLoginScreen();
   }
 }
 
