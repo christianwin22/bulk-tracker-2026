@@ -142,8 +142,8 @@ const SLOTS = {
   ],
 };
 const AREA_COLOR  = {"Chest":"#ff6b35","Back Pull":"#185FA5","Back Row":"#0C447C","Legs":"#34c759","Shoulder":"#af52de"};
-const FEEL_COLOR  = {Easy:"#D4DCE8",Med:"#8EA8C3",Hard:"#4A6FA5",Max:"#1A2F45"};
-const FEEL_TEXT   = {Easy:"#2D3F58",Med:"#1A2F45",Hard:"#ffffff",Max:"#ffffff"};
+const FEEL_COLOR  = {Easy:"#86D99A",Med:"#FFBE4F",Hard:"#FF9070",Max:"#FF7070"};
+const FEEL_TEXT   = {Easy:"#1a5c2f",Med:"#7a4500",Hard:"#7a2800",Max:"#6b0f0f"};
 const FEEL_REST   = {Easy:60,Med:90,Hard:150,Max:180};
 const FEEL_DESC   = {Easy:"4+ reps in tank",Med:"2–3 reps left",Hard:"1 rep left — target",Max:"Hit limit"};
 const FEELS       = ["Easy","Med","Hard","Max"];
@@ -475,9 +475,13 @@ function setLoginMode(mode) {
 async function doLogin() {
   const email = document.getElementById("login-email")?.value?.trim();
   const pw    = document.getElementById("login-pw")?.value;
-  if (!email || !pw) { document.getElementById("login-msg").innerHTML = `<span style="color:var(--red);">Please enter email and password.</span>`; return; }
-  const btn = document.getElementById("login-btn");
   const msg = document.getElementById("login-msg");
+  if (!email || !pw) { msg.innerHTML = `<span style="color:var(--red);">Please enter email and password.</span>`; return; }
+  if (!_sb) {
+    try { await sbInit(); } catch(e) {}
+    if (!_sb) { msg.innerHTML = `<span style="color:var(--red);">Connection failed. Check your internet and try again.</span>`; return; }
+  }
+  const btn = document.getElementById("login-btn");
   btn.textContent = _loginMode==="signin" ? "Signing in…" : "Creating account…";
   btn.disabled = true; btn.style.opacity = ".7";
 
