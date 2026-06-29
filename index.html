@@ -8,15 +8,15 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
-  --bg: #f5f5f7;
+  --bg: #f0f4f8;
   --card: #ffffff;
-  --border: #e8e8ed;
-  --txt: #1d1d1f;
-  --sub: #6e6e73;
-  --faint: #aeaeb2;
-  --acc: #ff6b35;
-  --acc-soft: #fff3ee;
-  --acc-dark: #e8541a;
+  --border: #dde3ea;
+  --txt: #1a2535;
+  --sub: #7a8a9a;
+  --faint: #aab4c0;
+  --acc: #185FA5;
+  --acc-soft: #eef3fa;
+  --acc-dark: #0C447C;
   --grn: #34c759;
   --grn-soft: #e9f9ee;
   --blu: #007aff;
@@ -25,20 +25,21 @@
   --pur-soft: #f5eafd;
   --yel: #ff9f0a;
   --red: #ff3b30;
+  --orange: #ff6b35;
   color-scheme: light;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-body { background: var(--bg); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; padding-bottom: 120px; }
+body { background: var(--bg); font-family: 'Inter', -apple-system, sans-serif; min-height: 100vh; padding-bottom: 90px; }
 input, select, textarea, button { font-family: inherit; }
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 input[type=date]::-webkit-calendar-picker-indicator { opacity: 0.4; }
 button { -webkit-appearance: none; cursor: pointer; }
 
-/* NAV BAR */
+/* NAV */
 #nav {
   position: fixed; bottom: 0; left: 0; right: 0;
-  background: rgba(255,255,255,0.92);
+  background: rgba(255,255,255,0.96);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
@@ -46,107 +47,56 @@ button { -webkit-appearance: none; cursor: pointer; }
   padding: 8px 0 max(16px, env(safe-area-inset-bottom));
   z-index: 90;
 }
-.nav-btn {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-  background: none; border: none; padding: 4px 0;
-}
-.nav-icon { font-size: 22px; line-height: 1; }
+.nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; padding: 4px 0; }
+.nav-icon { font-size: 20px; line-height: 1; }
 .nav-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; }
 
-/* TIMER */
-#timer-bar {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: rgba(255,255,255,0.97);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border);
-  padding: 16px 20px max(28px, env(safe-area-inset-bottom));
-  z-index: 100; display: none;
-  box-shadow: 0 -8px 32px rgba(0,0,0,0.08);
-}
-#timer-bar.active { display: block; }
-
 /* CARDS */
-.card {
-  background: var(--card);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-.card-pad { padding: 16px; }
+.card { background: var(--card); border-radius: 12px; border: 0.5px solid var(--border); overflow: hidden; }
+.card-pad { padding: 14px; }
 
 /* INPUTS */
-.inp {
-  background: var(--bg);
-  border: 1.5px solid var(--border);
-  border-radius: 10px;
-  color: var(--txt);
-  font-size: 15px;
-  font-weight: 500;
-  padding: 10px 12px;
-  outline: none;
-  transition: border-color .15s;
-  width: 100%;
-}
+.inp { background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; color: var(--txt); font-size: 15px; font-weight: 500; padding: 10px 12px; outline: none; transition: border-color .15s; width: 100%; }
 .inp:focus { border-color: var(--acc); }
 
-/* PILL BUTTON */
-.pill {
-  border-radius: 999px;
-  border: none;
-  font-weight: 700;
-  font-size: 13px;
-  padding: 10px 20px;
-  transition: opacity .15s, transform .1s;
-}
-.pill:active { transform: scale(.97); opacity: .85; }
-.pill-acc { background: var(--acc); color: #fff; }
-.pill-ghost { background: var(--bg); color: var(--sub); border: 1.5px solid var(--border); }
-
-/* FULL BUTTON */
-.btn-full {
-  width: 100%; padding: 15px; border-radius: 14px; border: none;
-  font-size: 15px; font-weight: 700; letter-spacing: .02em;
-  transition: opacity .15s, transform .1s;
-}
+/* BUTTONS */
+.btn-full { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 14px; font-weight: 700; letter-spacing: .02em; transition: opacity .15s, transform .1s; }
 .btn-full:active { transform: scale(.99); opacity: .9; }
 .btn-acc { background: var(--acc); color: #fff; }
 .btn-grn { background: var(--grn); color: #fff; }
 
-/* FEEL CHIPS */
-.feel-btn {
-  flex: 1; padding: 5px 2px; border-radius: 8px;
-  border: 1.5px solid var(--border);
-  background: transparent; color: var(--faint);
-  font-size: 10px; font-weight: 700;
-  transition: all .1s;
-}
-
 /* SECTION HEADER */
-.sec-head {
-  font-size: 11px; font-weight: 700; color: var(--sub);
-  letter-spacing: .06em; text-transform: uppercase;
-  margin-bottom: 10px;
-}
+.sec-head { font-size: 11px; font-weight: 700; color: var(--sub); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 10px; }
 
 /* BADGE */
-.badge {
-  display: inline-flex; align-items: center;
-  padding: 3px 9px; border-radius: 999px;
-  font-size: 11px; font-weight: 700;
-}
+.badge { display: inline-flex; align-items: center; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+
+/* SET ROW */
+.set-row { display: grid; grid-template-columns: 36px 46px 46px 1fr 48px; gap: 3px; align-items: center; padding: 5px 8px; border-radius: 8px; }
+
+/* CELL INPUT */
+.cell-inp { border: 0.5px solid var(--border); border-radius: 6px; background: var(--card); color: var(--txt); font-size: 13px; font-weight: 500; padding: 6px 3px; text-align: center; outline: none; width: 100%; }
+.cell-inp:focus { border-color: var(--acc); }
+.cell-inp::placeholder { color: var(--faint); }
+
+/* REST CELL */
+.rest-cell { border-radius: 6px; padding: 6px 3px; text-align: center; font-size: 11px; font-weight: 600; border: 0.5px solid var(--border); background: var(--bg); color: var(--faint); }
+
+/* FEEL WRAPPER */
+.feel-wrap { position: relative; }
+.feel-wrap select { width: 100%; border-radius: 6px; padding: 6px 16px 6px 7px; font-size: 11px; font-weight: 600; outline: none; -webkit-appearance: none; appearance: none; cursor: pointer; border-width: 0.5px; border-style: solid; }
+.feel-wrap::after { content: "▾"; position: absolute; right: 5px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 9px; }
 </style>
 </head>
 <body>
 <div id="app"></div>
-<div id="timer-bar"></div>
 <div id="nav" style="display:none;"></div>
 
 <script>
 const SUPABASE_URL      = "https://rvbiiptlajxocwtcgxqu.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2YmlpcHRsYWp4b2N3dGNneHF1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTI1NzQsImV4cCI6MjA5ODI4ODU3NH0.LoqzsyOY3YTfTtVIGu5mJh96SUB1POH_dZAwy079mS0";
 
-// ── CONSTANTS ───────────────────────────────────────────────────────────────
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
 const SESSIONS = [
   "2026-06-29","2026-07-01","2026-07-03",
   "2026-07-06","2026-07-08","2026-07-10",
@@ -155,31 +105,29 @@ const SESSIONS = [
 ];
 const SLOTS = {
   A: [
-    {area:"Chest",    sets:5, reps:5, options:[{id:"f1",name:"Flat DB Bench Press"},{id:"f2",name:"DB Chest Fly"}]},
-    {area:"Back Pull",sets:5, reps:5, options:[{id:"b1",name:"Wide Grip Lat Pulldown"},{id:"b2",name:"Band-Assisted Pull-up"}]},
-    {area:"Back Row", sets:5, reps:5, options:[{id:"r1",name:"Seated Cable Row"},{id:"r2",name:"Chest-Supported DB Row"},{id:"r3",name:"Smith Machine Row"}]},
-    {area:"Legs",     sets:5, reps:5, options:[{id:"l1",name:"DB Romanian Deadlift"},{id:"l2",name:"DB Sumo Squat"}]},
+    {area:"Chest",     sets:5, options:[{id:"f1",name:"Flat DB Bench Press"},{id:"f2",name:"DB Chest Fly"}]},
+    {area:"Back Pull", sets:5, options:[{id:"b1",name:"Wide Grip Lat Pulldown"},{id:"b2",name:"Band-Assisted Pull-up"}]},
+    {area:"Back Row",  sets:5, options:[{id:"r1",name:"Seated Cable Row"},{id:"r2",name:"Chest-Supported DB Row"},{id:"r3",name:"Smith Machine Row"}]},
+    {area:"Legs",      sets:5, options:[{id:"l1",name:"DB Romanian Deadlift"},{id:"l2",name:"DB Sumo Squat"}]},
   ],
   B: [
-    {area:"Chest",    sets:5, reps:5, options:[{id:"c1",name:"Incline DB Press"},{id:"c2",name:"DB Chest Fly"}]},
-    {area:"Back Pull",sets:5, reps:5, options:[{id:"p1",name:"Wide Grip Lat Pulldown"},{id:"p2",name:"Band-Assisted Pull-up"}]},
-    {area:"Back Row", sets:5, reps:5, options:[{id:"q1",name:"Seated Cable Row"},{id:"q2",name:"Chest-Supported DB Row"},{id:"q3",name:"Smith Machine Row"}]},
-    {area:"Shoulder", sets:5, reps:5, options:[{id:"s1",name:"Standing DB OHP"},{id:"s2",name:"Seated DB OHP"},{id:"s3",name:"Smith Machine OHP"}]},
+    {area:"Chest",     sets:5, options:[{id:"c1",name:"Incline DB Press"},{id:"c2",name:"DB Chest Fly"}]},
+    {area:"Back Pull", sets:5, options:[{id:"p1",name:"Wide Grip Lat Pulldown"},{id:"p2",name:"Band-Assisted Pull-up"}]},
+    {area:"Back Row",  sets:5, options:[{id:"q1",name:"Seated Cable Row"},{id:"q2",name:"Chest-Supported DB Row"},{id:"q3",name:"Smith Machine Row"}]},
+    {area:"Shoulder",  sets:5, options:[{id:"s1",name:"Standing DB OHP"},{id:"s2",name:"Seated DB OHP"},{id:"s3",name:"Smith Machine OHP"}]},
   ],
 };
-const AREA_COLOR = {
-  "Chest":"#ff6b35","Back Pull":"#007aff","Back Row":"#0055cc",
-  "Legs":"#34c759","Shoulder":"#af52de"
-};
-const FEEL_COLOR = {Easy:"#34c759",Med:"#ff9f0a",Hard:"#ff6b35",Max:"#ff3b30"};
-const FEELS = ["Easy","Med","Hard","Max"];
-const NUT_TARGET = {calories:2600,protein:105,carbs:300,fat:80};
+const AREA_COLOR  = {"Chest":"#ff6b35","Back Pull":"#185FA5","Back Row":"#0C447C","Legs":"#34c759","Shoulder":"#af52de"};
+const FEEL_COLOR  = {Easy:"#34c759",Med:"#ff9f0a",Hard:"#ff6b35",Max:"#ff3b30"};
+const FEEL_REST   = {Easy:60,Med:90,Hard:150,Max:180};
+const FEELS       = ["Easy","Med","Hard","Max"];
+const NUT_TARGET  = {calories:2600,protein:105,carbs:300,fat:80};
 
-// ── STATE ───────────────────────────────────────────────────────────────────
+// ── STATE ──────────────────────────────────────────────────────────────────
 const today = new Date().toISOString().slice(0,10);
 function nearestSession() { return SESSIONS.find(d=>d>=today)||SESSIONS[SESSIONS.length-1]; }
 function getType(d) { const i=SESSIONS.indexOf(d); return i<0?null:i%2===0?"A":"B"; }
-function mkSets(n) { return Array.from({length:n},(_,i)=>({set:i+1,reps:"",weight:"",feel:""})); }
+function mkSets(n) { return Array.from({length:n},(_,i)=>({set:i+1,reps:"",weight:"",feel:"",rest:""})); }
 function defaultMeals() {
   return [{name:"Breakfast",calories:"",protein:"",carbs:"",fat:""},
           {name:"Lunch",calories:"",protein:"",carbs:"",fat:""},
@@ -188,31 +136,146 @@ function defaultMeals() {
 
 let S = {
   tab:"workout", height:"172", weight:"—",
-  wDate:nearestSession(), wManual:null, wSel:{},
+  wDate:nearestSession(), wManual:null, wSel:{}, wOrder:{},
   wNums:{0:"1",1:"2",2:"3",3:"4"},
   wSets:{
-    "2026-06-29_0":[{set:1,reps:"",weight:"15",feel:"Easy"},{set:2,reps:"5",weight:"15",feel:"Easy"},{set:3,reps:"5",weight:"15",feel:"Easy"},{set:4,reps:"5",weight:"20",feel:"Med"},{set:5,reps:"5",weight:"20",feel:"Med"}],
-    "2026-06-29_1":[{set:1,reps:"5",weight:"21",feel:"Easy"},{set:2,reps:"5",weight:"21",feel:"Easy"},{set:3,reps:"5",weight:"28",feel:"Easy"},{set:4,reps:"5",weight:"28",feel:"Easy"},{set:5,reps:"5",weight:"28",feel:"Easy"}],
-    "2026-06-29_2":[{set:1,reps:"5",weight:"21",feel:"Easy"},{set:2,reps:"5",weight:"21",feel:"Easy"},{set:3,reps:"5",weight:"21",feel:"Easy"},{set:4,reps:"5",weight:"28",feel:"Med"},{set:5,reps:"5",weight:"28",feel:"Med"}],
-    "2026-06-29_3":[{set:1,reps:"5",weight:"15",feel:"Easy"},{set:2,reps:"5",weight:"15",feel:"Easy"},{set:3,reps:"5",weight:"15",feel:"Easy"},{set:4,reps:"5",weight:"20",feel:"Med"},{set:5,reps:"5",weight:"20",feel:"Med"}]
+    "2026-06-29_0":[{set:1,reps:"",weight:"15",feel:"Easy",rest:60},{set:2,reps:"5",weight:"15",feel:"Easy",rest:60},{set:3,reps:"5",weight:"15",feel:"Easy",rest:60},{set:4,reps:"5",weight:"20",feel:"Med",rest:90},{set:5,reps:"5",weight:"20",feel:"Med",rest:90}],
+    "2026-06-29_1":[{set:1,reps:"5",weight:"21",feel:"Easy",rest:60},{set:2,reps:"5",weight:"21",feel:"Easy",rest:60},{set:3,reps:"5",weight:"28",feel:"Easy",rest:60},{set:4,reps:"5",weight:"28",feel:"Easy",rest:60},{set:5,reps:"5",weight:"28",feel:"Easy",rest:60}],
+    "2026-06-29_2":[{set:1,reps:"5",weight:"21",feel:"Easy",rest:60},{set:2,reps:"5",weight:"21",feel:"Easy",rest:60},{set:3,reps:"5",weight:"21",feel:"Easy",rest:60},{set:4,reps:"5",weight:"28",feel:"Med",rest:90},{set:5,reps:"5",weight:"28",feel:"Med",rest:90}],
+    "2026-06-29_3":[{set:1,reps:"5",weight:"15",feel:"Easy",rest:60},{set:2,reps:"5",weight:"15",feel:"Easy",rest:60},{set:3,reps:"5",weight:"15",feel:"Easy",rest:60},{set:4,reps:"5",weight:"20",feel:"Med",rest:90},{set:5,reps:"5",weight:"20",feel:"Med",rest:90}]
   },
   nDate:today, nMeals:defaultMeals(), pDate:today,
   sessions:{
     "2026-06-29":{date:"2026-06-29",workoutType:"A",exercises:[
-      {area:"Chest",name:"Flat DB Bench Press",sets:[{set:1,reps:"",weight:"15",feel:"Easy"},{set:2,reps:"5",weight:"15",feel:"Easy"},{set:3,reps:"5",weight:"15",feel:"Easy"},{set:4,reps:"5",weight:"20",feel:"Med"},{set:5,reps:"5",weight:"20",feel:"Med"}]},
-      {area:"Back Pull",name:"Wide Grip Lat Pulldown",sets:[{set:1,reps:"5",weight:"21",feel:"Easy"},{set:2,reps:"5",weight:"21",feel:"Easy"},{set:3,reps:"5",weight:"28",feel:"Easy"},{set:4,reps:"5",weight:"28",feel:"Easy"},{set:5,reps:"5",weight:"28",feel:"Easy"}]},
-      {area:"Back Row",name:"Seated Cable Row",sets:[{set:1,reps:"5",weight:"21",feel:"Easy"},{set:2,reps:"5",weight:"21",feel:"Easy"},{set:3,reps:"5",weight:"21",feel:"Easy"},{set:4,reps:"5",weight:"28",feel:"Med"},{set:5,reps:"5",weight:"28",feel:"Med"}]},
-      {area:"Legs",name:"DB Romanian Deadlift",sets:[{set:1,reps:"5",weight:"15",feel:"Easy"},{set:2,reps:"5",weight:"15",feel:"Easy"},{set:3,reps:"5",weight:"15",feel:"Easy"},{set:4,reps:"5",weight:"20",feel:"Med"},{set:5,reps:"5",weight:"20",feel:"Med"}]}
+      {area:"Chest",name:"Flat DB Bench Press",sets:[{set:1,reps:"",weight:"15",feel:"Easy",rest:60},{set:2,reps:"5",weight:"15",feel:"Easy",rest:60},{set:3,reps:"5",weight:"15",feel:"Easy",rest:60},{set:4,reps:"5",weight:"20",feel:"Med",rest:90},{set:5,reps:"5",weight:"20",feel:"Med",rest:90}]},
+      {area:"Back Pull",name:"Wide Grip Lat Pulldown",sets:[{set:1,reps:"5",weight:"21",feel:"Easy",rest:60},{set:2,reps:"5",weight:"21",feel:"Easy",rest:60},{set:3,reps:"5",weight:"28",feel:"Easy",rest:60},{set:4,reps:"5",weight:"28",feel:"Easy",rest:60},{set:5,reps:"5",weight:"28",feel:"Easy",rest:60}]},
+      {area:"Back Row",name:"Seated Cable Row",sets:[{set:1,reps:"5",weight:"21",feel:"Easy",rest:60},{set:2,reps:"5",weight:"21",feel:"Easy",rest:60},{set:3,reps:"5",weight:"21",feel:"Easy",rest:60},{set:4,reps:"5",weight:"28",feel:"Med",rest:90},{set:5,reps:"5",weight:"28",feel:"Med",rest:90}]},
+      {area:"Legs",name:"DB Romanian Deadlift",sets:[{set:1,reps:"5",weight:"15",feel:"Easy",rest:60},{set:2,reps:"5",weight:"15",feel:"Easy",rest:60},{set:3,reps:"5",weight:"15",feel:"Easy",rest:60},{set:4,reps:"5",weight:"20",feel:"Med",rest:90},{set:5,reps:"5",weight:"20",feel:"Med",rest:90}]}
     ]}
   },
   nutrition:{}, progress:{},
-  timer:{visible:false,running:false,seconds:0,total:0,info:""},
+  timer:{visible:false,running:false,seconds:0,total:0,feel:""},
   syncStatus:"idle"
 };
 
-// ── SUPABASE ────────────────────────────────────────────────────────────────
-let _sb=null, _userId=null;
-function sbReady() { return _sb&&_userId; }
+// ── TIMER ──────────────────────────────────────────────────────────────────
+let timerIv = null;
+let _timerStartAt = null;
+let _timerDuration = 0;
+
+function startRestTimer(feel) {
+  const secs = FEEL_REST[feel] || 90;
+  clearInterval(timerIv);
+  _timerStartAt = Date.now();
+  _timerDuration = secs;
+  S.timer = {visible:true, running:true, seconds:secs, total:secs, feel};
+  try { localStorage.setItem("bt_timer", JSON.stringify({startAt:_timerStartAt, duration:_timerDuration, feel})); } catch(e){}
+  timerIv = setInterval(tickTimer, 500);
+  renderTimerSection();
+}
+
+function tickTimer() {
+  if (!_timerStartAt) return;
+  const elapsed = Math.floor((Date.now() - _timerStartAt) / 1000);
+  const remaining = Math.max(0, _timerDuration - elapsed);
+  S.timer.seconds = remaining;
+  if (remaining <= 0 && S.timer.running) {
+    S.timer.running = false;
+    clearInterval(timerIv);
+    try { localStorage.removeItem("bt_timer"); } catch(e){}
+    onTimerDone();
+  }
+  renderTimerSection();
+}
+
+function resumeTimerIfActive() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("bt_timer") || "null");
+    if (!saved) return;
+    const elapsed = Math.floor((Date.now() - saved.startAt) / 1000);
+    const remaining = saved.duration - elapsed;
+    if (remaining > 0) {
+      _timerStartAt = saved.startAt;
+      _timerDuration = saved.duration;
+      S.timer = {visible:true, running:true, seconds:remaining, total:saved.duration, feel:saved.feel};
+      timerIv = setInterval(tickTimer, 500);
+    } else {
+      localStorage.removeItem("bt_timer");
+    }
+  } catch(e){}
+}
+
+document.addEventListener("visibilitychange", () => { if (!document.hidden && _timerStartAt) tickTimer(); });
+
+function skipTimer() {
+  clearInterval(timerIv);
+  _timerStartAt = null;
+  S.timer = {visible:false, running:false, seconds:0, total:0, feel:""};
+  try { localStorage.removeItem("bt_timer"); } catch(e){}
+  renderTimerSection();
+}
+
+function adjTimer(d) {
+  if (!_timerStartAt) return;
+  if (d > 0) {
+    _timerDuration += d;
+  } else {
+    const elapsed = Math.floor((Date.now() - _timerStartAt) / 1000);
+    _timerDuration = Math.max(elapsed + 10, _timerDuration + d);
+  }
+  S.timer.total = _timerDuration;
+  tickTimer();
+}
+
+function onTimerDone() {
+  if (navigator.vibrate) navigator.vibrate([200,100,200]);
+  try {
+    const ctx = new(window.AudioContext||window.webkitAudioContext)();
+    [880,660].forEach((freq,i)=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination); o.type="sine"; o.frequency.value=freq;
+      const t=ctx.currentTime+i*.45;
+      g.gain.setValueAtTime(.25,t); g.gain.exponentialRampToValueAtTime(.001,t+.4);
+      o.start(t); o.stop(t+.4);
+    });
+  } catch(e){}
+}
+
+function fmtTime(s) { return Math.floor(s/60)+":"+(s%60).toString().padStart(2,"0"); }
+
+function renderTimerSection() {
+  const el = document.getElementById("timer-section");
+  if (!el) return;
+  const {visible, running, seconds, total, feel} = S.timer;
+  if (!visible) { el.innerHTML = ""; return; }
+  const fc = FEEL_COLOR[feel] || "var(--acc)";
+  const done = !running && total > 0 && seconds <= 0;
+  const pct = total > 0 ? (seconds / total * 100) : 0;
+  const urgent = running && seconds <= 10;
+  el.innerHTML = `
+  <div class="card" style="margin-bottom:10px;border-color:${done?"var(--grn)":fc};">
+    <div style="padding:12px 14px 10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+        <div>
+          <div style="font-size:10px;font-weight:700;color:${done?"var(--grn)":fc};text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">${done?"Rest Done ✓":feel+" · Resting"}</div>
+          <div style="font-size:28px;font-weight:700;color:${done?"var(--grn)":urgent?"var(--red)":"var(--txt)"};line-height:1;">${done?"Done!":fmtTime(seconds)}</div>
+        </div>
+        <button onclick="skipTimer()" style="background:var(--bg);border:0.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;color:var(--sub);margin-top:2px;">Dismiss</button>
+      </div>
+      <div style="background:var(--border);border-radius:999px;height:4px;overflow:hidden;margin-bottom:8px;">
+        <div style="width:${100-pct}%;height:100%;background:${done?"var(--grn)":urgent?"var(--red)":fc};border-radius:999px;transition:width .5s linear;"></div>
+      </div>
+      <div style="display:flex;gap:5px;">
+        <button onclick="adjTimer(-30)" style="flex:1;padding:7px 0;border-radius:8px;border:0.5px solid var(--border);background:var(--bg);color:${running?"var(--txt)":"var(--faint)"};font-size:12px;font-weight:600;">−30s</button>
+        <button onclick="adjTimer(30)"  style="flex:1;padding:7px 0;border-radius:8px;border:0.5px solid var(--border);background:var(--bg);color:${running?"var(--txt)":"var(--faint)"};font-size:12px;font-weight:600;">+30s</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── SUPABASE ───────────────────────────────────────────────────────────────
+let _sb = null, _userId = null;
+function sbReady() { return _sb && _userId; }
 
 async function sbInit() {
   try {
@@ -221,11 +284,11 @@ async function sbInit() {
       await _sb.auth.exchangeCodeForSession(location.hash);
       history.replaceState(null,"",location.pathname);
     }
-    const { data:{session} } = await _sb.auth.getSession();
+    const {data:{session}} = await _sb.auth.getSession();
     if (session && !session.user.is_anonymous) {
       _userId = session.user.id;
     } else {
-      if (session) await _sb.auth.signOut(); // clear anonymous session
+      if (session) await _sb.auth.signOut();
       showLoginScreen();
     }
   } catch(e) { console.warn("Supabase init failed:",e); }
@@ -237,20 +300,20 @@ async function sbLoad() {
     const {data,error} = await _sb.from("user_data").select("*").eq("id",_userId).maybeSingle();
     if (error) throw error;
     if (data) {
-      S.sessions  = Object.assign({},S.sessions, data.sessions||{});
-      S.nutrition = Object.assign({},S.nutrition,data.nutrition||{});
-      S.progress  = Object.assign({},S.progress, data.progress||{});
-      S.wSets     = Object.assign({},S.wSets,    data.w_sets||{});
-      if (data.height) S.height=data.height;
-      if (data.weight) S.weight=data.weight;
-      if (data.w_nums) S.wNums=data.w_nums;
+      S.sessions  = Object.assign({},S.sessions,  data.sessions||{});
+      S.nutrition = Object.assign({},S.nutrition, data.nutrition||{});
+      S.progress  = Object.assign({},S.progress,  data.progress||{});
+      S.wSets     = Object.assign({},S.wSets,     data.w_sets||{});
+      if (data.height) S.height = data.height;
+      if (data.weight) S.weight = data.weight;
+      if (data.w_nums) S.wNums  = data.w_nums;
     }
   } catch(e) { console.warn("Supabase load failed:",e); }
 }
 
 async function sbSave() {
   if (!sbReady()) return;
-  S.syncStatus="syncing"; renderSyncBadge();
+  S.syncStatus = "syncing"; renderSyncBadge();
   try {
     const {error} = await _sb.from("user_data").upsert({
       id:_userId, sessions:S.sessions, nutrition:S.nutrition,
@@ -258,68 +321,77 @@ async function sbSave() {
       height:S.height, weight:S.weight, w_nums:S.wNums
     });
     if (error) throw error;
-    S.syncStatus="synced";
-  } catch(e) { console.warn("Supabase save:",e); S.syncStatus="error"; }
+    S.syncStatus = "synced";
+  } catch(e) { console.warn("Supabase save:",e); S.syncStatus = "error"; }
   renderSyncBadge();
 }
 
 function renderSyncBadge() {
-  const el=document.getElementById("sync-badge"); if(!el) return;
-  const map={idle:["",""],syncing:["↑","#ff9f0a"],synced:["✓ synced","#34c759"],error:["⚠ offline","#ff3b30"]};
-  const [t,c]=map[S.syncStatus]||["",""];
-  el.textContent=t; el.style.color=c;
+  const el = document.getElementById("sync-badge"); if (!el) return;
+  const map = {idle:["",""],syncing:["↑","#ff9f0a"],synced:["✓","#34c759"],error:["⚠","#ff3b30"]};
+  const [t,c] = map[S.syncStatus]||["",""];
+  el.textContent = t; el.style.color = c;
 }
 
-// ── LOCAL STORAGE ───────────────────────────────────────────────────────────
-const LS="bulktracker_v2";
+// ── LOCAL STORAGE ──────────────────────────────────────────────────────────
+const LS = "bulktracker_v3";
 function lsSave() {
-  try { localStorage.setItem(LS,JSON.stringify({sessions:S.sessions,nutrition:S.nutrition,progress:S.progress,wSets:S.wSets,height:S.height,weight:S.weight,wNums:S.wNums})); } catch(e){}
+  try {
+    localStorage.setItem(LS, JSON.stringify({
+      sessions:S.sessions, nutrition:S.nutrition, progress:S.progress,
+      wSets:S.wSets, wOrder:S.wOrder, wSel:S.wSel,
+      height:S.height, weight:S.weight, wNums:S.wNums
+    }));
+  } catch(e){}
   sbSave();
 }
 function lsLoad() {
   try {
-    const d=JSON.parse(localStorage.getItem(LS)||"null"); if(!d) return;
-    S.sessions =Object.assign({},S.sessions, d.sessions||{});
-    S.nutrition=Object.assign({},S.nutrition,d.nutrition||{});
-    S.progress =Object.assign({},S.progress, d.progress||{});
-    S.wSets    =Object.assign({},S.wSets,    d.wSets||{});
-    if(d.height) S.height=d.height;
-    if(d.weight) S.weight=d.weight;
-    if(d.wNums)  S.wNums=d.wNums;
+    const d = JSON.parse(localStorage.getItem(LS)||"null"); if (!d) return;
+    S.sessions  = Object.assign({},S.sessions,  d.sessions||{});
+    S.nutrition = Object.assign({},S.nutrition, d.nutrition||{});
+    S.progress  = Object.assign({},S.progress,  d.progress||{});
+    S.wSets     = Object.assign({},S.wSets,     d.wSets||{});
+    S.wOrder    = Object.assign({},S.wOrder,    d.wOrder||{});
+    S.wSel      = Object.assign({},S.wSel,      d.wSel||{});
+    if (d.height) S.height = d.height;
+    if (d.weight) S.weight = d.weight;
+    if (d.wNums)  S.wNums  = d.wNums;
   } catch(e){}
 }
 
-// ── HELPERS ─────────────────────────────────────────────────────────────────
-function fmtShort(d) { return new Date(d+'T00:00:00').toLocaleDateString("en-GB",{day:"numeric",month:"short"}); }
-function fmtLong(d)  { return new Date(d+'T00:00:00').toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
+// ── HELPERS ────────────────────────────────────────────────────────────────
+function fmtLong(d)  { return new Date(d+"T00:00:00").toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"}); }
+function dayAbbr(d)  { return new Date(d+"T00:00:00").toLocaleDateString("en-GB",{weekday:"short"}); }
+function fmtRest(s)  { if (!s) return "—"; return Math.floor(s/60)+":"+(s%60).toString().padStart(2,"0"); }
 function getWType()  { return S.wManual||getType(S.wDate)||"A"; }
 function getSlots()  { return SLOTS[getWType()]; }
 function getEx(si)   { const sl=getSlots()[si]; return sl.options[Math.min(S.wSel[si]??0,sl.options.length-1)]; }
 function getSets(si) { return S.wSets[S.wDate+"_"+si]||mkSets(getSlots()[si].sets); }
+function getOrder()  {
+  const t = getWType();
+  if (!S.wOrder[t] || S.wOrder[t].length !== getSlots().length)
+    S.wOrder[t] = getSlots().map((_,i)=>i);
+  return S.wOrder[t];
+}
 
-// ── LOGIN SCREEN ─────────────────────────────────────────────────────────────
+// ── LOGIN SCREEN ───────────────────────────────────────────────────────────
 function showLoginScreen() {
-  document.getElementById("nav").style.display="none";
+  document.getElementById("nav").style.display = "none";
   document.getElementById("app").innerHTML = `
-  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;">
+  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:var(--bg);">
     <div style="width:100%;max-width:360px;">
       <div style="width:56px;height:56px;background:var(--acc);border-radius:16px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;font-size:28px;">🏋️</div>
       <div style="font-size:28px;font-weight:800;color:var(--txt);margin-bottom:6px;letter-spacing:-.5px;">Bulk Tracker</div>
       <div style="font-size:15px;color:var(--sub);margin-bottom:40px;line-height:1.5;">Sign in to sync your workouts across all your devices.</div>
-
       <div style="margin-bottom:12px;">
         <div style="font-size:12px;font-weight:600;color:var(--sub);margin-bottom:6px;">EMAIL</div>
         <input id="login-email" type="email" placeholder="your@email.com" autocomplete="email"
           class="inp" style="font-size:16px;padding:14px 16px;"
           onkeydown="if(event.key==='Enter') sendMagicLink()"/>
       </div>
-
-      <button onclick="sendMagicLink()" class="btn-full btn-acc" id="login-btn" style="margin-top:4px;">
-        SEND MAGIC LINK
-      </button>
-
+      <button onclick="sendMagicLink()" class="btn-full btn-acc" id="login-btn" style="margin-top:4px;">SEND MAGIC LINK</button>
       <div id="login-msg" style="margin-top:16px;font-size:13px;color:var(--sub);text-align:center;line-height:1.5;"></div>
-
       <div style="margin-top:40px;padding-top:24px;border-top:1px solid var(--border);font-size:12px;color:var(--faint);text-align:center;line-height:1.7;">
         We'll email you a one-tap sign-in link.<br/>No password ever needed.
       </div>
@@ -328,156 +400,263 @@ function showLoginScreen() {
 }
 
 async function sendMagicLink() {
-  const email=document.getElementById("login-email")?.value?.trim();
+  const email = document.getElementById("login-email")?.value?.trim();
   if (!email) return;
-  const btn=document.getElementById("login-btn");
-  const msg=document.getElementById("login-msg");
-  btn.textContent="Sending…"; btn.disabled=true; btn.style.opacity=".7";
-  const {error} = await _sb.auth.signInWithOtp({
-    email, options:{emailRedirectTo:location.origin+location.pathname}
-  });
+  const btn = document.getElementById("login-btn");
+  const msg = document.getElementById("login-msg");
+  btn.textContent = "Sending…"; btn.disabled = true; btn.style.opacity = ".7";
+  const {error} = await _sb.auth.signInWithOtp({email, options:{emailRedirectTo:location.origin+location.pathname}});
   if (error) {
-    msg.innerHTML=`<span style="color:var(--red);">${error.message}</span>`;
-    btn.textContent="SEND MAGIC LINK"; btn.disabled=false; btn.style.opacity="1";
+    msg.innerHTML = `<span style="color:var(--red);">${error.message}</span>`;
+    btn.textContent = "SEND MAGIC LINK"; btn.disabled = false; btn.style.opacity = "1";
   } else {
-    msg.innerHTML=`<strong style="color:var(--grn);">✓ Link sent!</strong><br/>Check your inbox and tap the link to sign in.`;
-    btn.textContent="LINK SENT ✓"; btn.style.background="var(--grn)";
+    msg.innerHTML = `<strong style="color:var(--grn);">✓ Link sent!</strong><br/>Check your inbox and tap the link to sign in.`;
+    btn.textContent = "LINK SENT ✓"; btn.style.background = "var(--grn)";
   }
 }
 
-// ── TIMER ────────────────────────────────────────────────────────────────────
-let timerIv=null;
-function showTimer(si,idx) {
-  const slots=getSlots(), next=slots[si+1];
-  const info=next?"Next up: "+next.area:"Last exercise — great work!";
-  clearInterval(timerIv);
-  S.timer={visible:true,running:false,seconds:0,total:0,info};
-  renderTimer();
-}
-function presetTimer(s) {
-  clearInterval(timerIv);
-  S.timer.seconds=s; S.timer.total=s; S.timer.running=true;
-  renderTimer();
-  timerIv=setInterval(()=>{
-    S.timer.seconds--;
-    if (S.timer.seconds<=0) {
-      S.timer.seconds=0; S.timer.running=false;
-      clearInterval(timerIv); onTimerDone();
-    }
-    renderTimer();
-  },1000);
-}
-function onTimerDone() {
-  if(navigator.vibrate) navigator.vibrate([200,100,200]);
-  try {
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [880,660].forEach((freq,i)=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);o.type="sine";o.frequency.value=freq;
-      const t=ctx.currentTime+i*.45;
-      g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.4);
-      o.start(t);o.stop(t+.4);
-    });
-  } catch(e){}
-  renderTimer();
-}
-function skipTimer() {
-  clearInterval(timerIv);
-  S.timer.visible=false; S.timer.running=false;
-  document.getElementById("timer-bar").classList.remove("active");
-}
-function adjTimer(d) {
-  if(!S.timer.running) return;
-  S.timer.seconds=Math.max(10,S.timer.seconds+d);
-  if(d>0) S.timer.total=Math.max(S.timer.total,S.timer.seconds);
-  renderTimer();
-}
-function fmtTime(s) { return Math.floor(s/60)+":"+(s%60).toString().padStart(2,"0"); }
-
-function renderTimer() {
-  const bar=document.getElementById("timer-bar");
-  if(!S.timer.visible){bar.classList.remove("active");return;}
-  bar.classList.add("active");
-  const {running,seconds,total,info}=S.timer;
-  const done=!running&&total>0&&seconds<=0;
-  const R=30,circ=2*Math.PI*R;
-  const pct=(running||done)?(total>0?seconds/total:0):0;
-  const offset=circ*(1-pct);
-  const presets=[{l:"1m",v:60},{l:"1:30",v:90},{l:"2m",v:120},{l:"3m",v:180}];
-  let ct,cc;
-  if(!running&&total===0){ct="TAP";cc="var(--faint)";}
-  else if(done){ct="✓";cc="var(--grn)";}
-  else{ct=fmtTime(seconds);cc="var(--txt)";}
-
-  bar.innerHTML=`
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-    <div>
-      <div style="font-size:12px;font-weight:700;color:${done?"var(--grn)":"var(--acc)"};">
-        ${done?"Rest Done ✓":"Rest Timer"}
-      </div>
-      <div style="font-size:12px;color:var(--sub);margin-top:1px;">${info}</div>
-    </div>
-    <button onclick="skipTimer()" style="background:var(--bg);border:1.5px solid var(--border);border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700;color:var(--sub);">Done</button>
-  </div>
-  <div style="display:flex;align-items:center;gap:20px;">
-    <div style="position:relative;width:68px;height:68px;flex-shrink:0;">
-      <svg width="68" height="68" viewBox="0 0 68 68">
-        <circle cx="34" cy="34" r="${R}" fill="none" stroke="var(--border)" stroke-width="5" ${!running&&total===0?'stroke-dasharray="5 4"':""}/>
-        ${(running||done)?`<circle cx="34" cy="34" r="${R}" fill="none" stroke="${done?"var(--grn)":"var(--acc)"}" stroke-width="5"
-          stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${offset.toFixed(1)}"
-          stroke-linecap="round" transform="rotate(-90 34 34)"/>`:""}
-      </svg>
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-        <span style="font-size:${done?20:(!running&&total===0?11:17)}px;font-weight:800;color:${cc};">${ct}</span>
-      </div>
-    </div>
-    <div style="flex:1;">
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px;">
-        ${presets.map(p=>{
-          const sel=running&&S.timer.total===p.v;
-          return `<button onclick="presetTimer(${p.v})" style="padding:8px 0;border-radius:10px;border:1.5px solid ${sel?"var(--acc)":"var(--border)"};background:${sel?"var(--acc)":"var(--card)"};color:${sel?"#fff":"var(--sub)"};font-size:12px;font-weight:700;">${p.l}</button>`;
-        }).join("")}
-      </div>
-      <div style="display:flex;gap:6px;">
-        <button onclick="adjTimer(-30)" style="flex:1;padding:8px 0;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:${running?"var(--txt)":"var(--faint)"};font-size:13px;font-weight:700;">−30s</button>
-        <button onclick="adjTimer(30)"  style="flex:1;padding:8px 0;border-radius:10px;border:1.5px solid var(--border);background:var(--card);color:${running?"var(--txt)":"var(--faint)"};font-size:13px;font-weight:700;">+30s</button>
-      </div>
-    </div>
-  </div>`;
-}
-
-// ── NAV BAR ──────────────────────────────────────────────────────────────────
+// ── NAV ────────────────────────────────────────────────────────────────────
 function renderNav() {
-  const tabs=[["workout","🏋️","Workout"],["nutrition","🥗","Nutrition"],["progress","📈","Progress"]];
-  document.getElementById("nav").style.display="flex";
-  document.getElementById("nav").innerHTML=tabs.map(([t,icon,label])=>`
+  const tabs = [["workout","🏋️","Workout"],["nutrition","🥗","Nutrition"],["progress","📈","Progress"]];
+  document.getElementById("nav").style.display = "flex";
+  document.getElementById("nav").innerHTML = tabs.map(([t,icon,label])=>`
     <button class="nav-btn" onclick="S.tab='${t}';render();">
       <span class="nav-icon">${icon}</span>
       <span class="nav-label" style="color:${S.tab===t?"var(--acc)":"var(--faint)"};">${label}</span>
     </button>`).join("");
 }
 
-// ── WORKOUT ACTIONS ──────────────────────────────────────────────────────────
+// ── WORKOUT ACTIONS ────────────────────────────────────────────────────────
 function wDate(d)   { S.wDate=d; S.wManual=null; render(); }
 function wManual(t) { S.wManual=(S.wManual===t?null:t); render(); }
 function wEx(si,oi) { S.wSel[si]=oi; S.wSets[S.wDate+"_"+si]=mkSets(getSlots()[si].sets); renderCards(); }
-function wSet(si,idx,field,val) {
-  const key=S.wDate+"_"+si;
-  if(!S.wSets[key]) S.wSets[key]=mkSets(getSlots()[si].sets);
-  S.wSets[key][idx][field]=val;
-  if(field==="feel"&&val) showTimer(si,idx);
-  renderCards(); updateWProgress();
-}
-function wSave() {
-  const slots=getSlots();
-  S.sessions[S.wDate]={date:S.wDate,workoutType:getWType(),exercises:slots.map((slot,i)=>({area:slot.area,name:getEx(i).name,sets:getSets(i)}))};
-  lsSave();
-  const btn=document.getElementById("w-save");
-  if(btn){btn.textContent="✓ Session Saved";btn.classList.replace("btn-acc","btn-grn");setTimeout(()=>{btn.textContent="Save Session";btn.classList.replace("btn-grn","btn-acc");},2500);}
-  document.getElementById("w-chips").innerHTML=renderChips();
+
+function wMoveBlock(dispIdx, dir) {
+  const t = getWType();
+  const order = S.wOrder[t] = getOrder().slice();
+  const j = dispIdx + dir;
+  if (j<0||j>=order.length) return;
+  [order[dispIdx], order[j]] = [order[j], order[dispIdx]];
+  S.wOrder[t] = order;
+  renderCards();
 }
 
-// ── NUTRITION ACTIONS ─────────────────────────────────────────────────────────
+function wSet(si, idx, field, val) {
+  const key = S.wDate+"_"+si;
+  if (!S.wSets[key]) S.wSets[key] = mkSets(getSlots()[si].sets);
+  S.wSets[key][idx][field] = val;
+  if (field === "feel" && val) {
+    S.wSets[key][idx].rest = FEEL_REST[val] || 90;
+    startRestTimer(val);
+  }
+  renderCards();
+  updateWProgress();
+}
+
+function wSave() {
+  const slots = getSlots(), order = getOrder();
+  S.sessions[S.wDate] = {
+    date:S.wDate, workoutType:getWType(),
+    exercises: order.map(si=>({area:slots[si].area, name:getEx(si).name, sets:getSets(si)}))
+  };
+  lsSave();
+  const btn = document.getElementById("w-save");
+  if (btn) {
+    btn.textContent="✓ Session Saved"; btn.classList.replace("btn-acc","btn-grn");
+    setTimeout(()=>{btn.textContent="Save Session";btn.classList.replace("btn-grn","btn-acc");},2500);
+  }
+  const badge = document.getElementById("w-saved-badge");
+  if (badge) { badge.style.display="inline-flex"; }
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function render() {
+  const sy = window.scrollY;
+  document.getElementById("app").innerHTML =
+    renderTopBar()+
+    `<div style="padding:12px 12px 0;">`+
+    (S.tab==="workout"   ? renderWorkoutTab()   : "")+
+    (S.tab==="nutrition" ? renderNutritionTab() : "")+
+    (S.tab==="progress"  ? renderProgressTab()  : "")+
+    `</div>`;
+  renderNav();
+  window.scrollTo(0,sy);
+  renderSyncBadge();
+  if (S.tab==="workout") renderTimerSection();
+}
+
+function renderTopBar() {
+  return `<div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:rgba(240,244,248,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:50;border-bottom:1px solid var(--border);">
+    <div>
+      <div style="font-size:20px;font-weight:800;color:var(--txt);letter-spacing:-.4px;">${{workout:"Workout",nutrition:"Nutrition",progress:"Progress"}[S.tab]}</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:1px;">Target 68–70 kg · Jun–Jul 2026</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="sync-badge" style="font-size:11px;font-weight:600;"></span>
+      <div style="text-align:right;">
+        <div style="font-size:13px;font-weight:700;color:var(--txt);">
+          <span contenteditable="true" onblur="S.weight=this.textContent.trim();lsSave();" style="outline:none;border-bottom:1.5px dashed var(--faint);">${S.weight}</span> kg
+        </div>
+        <div style="font-size:11px;color:var(--sub);">
+          <span contenteditable="true" onblur="S.height=this.textContent.trim();lsSave();" style="outline:none;border-bottom:1.5px dashed var(--faint);">${S.height}</span> cm
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── WORKOUT TAB ────────────────────────────────────────────────────────────
+function renderWorkoutTab() {
+  const wt = getWType(), slots = getSlots();
+  let tot=0, done=0;
+  slots.forEach((_,i)=>{const s=getSets(i);tot+=s.length;done+=s.filter(x=>x.feel).length;});
+  const pct = tot>0?Math.round(done/tot*100):0;
+  const areas = slots.map(s=>s.area).join(" · ");
+
+  // Session chips: prev + today + calendar
+  const idx = SESSIONS.indexOf(S.wDate);
+  const prevDate = idx>0 ? SESSIONS[idx-1] : null;
+  const hasSaved = !!S.sessions[S.wDate];
+
+  return `
+  <!-- Header card -->
+  <div class="card" style="margin-bottom:10px;">
+    <div style="padding:12px 14px 6px;display:flex;justify-content:space-between;align-items:flex-start;">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--txt);">${fmtLong(S.wDate)} · Type ${wt}</div>
+        <div style="font-size:11px;color:var(--sub);margin-top:2px;">${areas}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:12px;">
+        <div style="font-size:18px;font-weight:700;color:var(--acc);line-height:1;" id="w-counter">${done}/${tot}</div>
+        <div style="font-size:10px;color:var(--sub);margin-top:1px;">sets done</div>
+      </div>
+    </div>
+    <div style="margin:4px 14px 4px;background:var(--border);border-radius:999px;height:4px;overflow:hidden;">
+      <div id="w-pbar" style="width:${pct}%;height:100%;background:var(--acc);border-radius:999px;transition:width .3s;"></div>
+    </div>
+    <div style="padding:4px 14px 10px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:11px;color:var(--sub);">${pct}% complete</span>
+      <span id="w-saved-badge" class="badge" style="background:var(--grn-soft);color:var(--grn);${hasSaved?"":"display:none;}">✓ Saved</span>
+    </div>
+  </div>
+
+  <!-- Session chips: prev + today + calendar -->
+  <div style="display:flex;gap:6px;align-items:stretch;margin-bottom:12px;">
+    ${prevDate?`<button onclick="wDate('${prevDate}')" style="flex-shrink:0;background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;">
+      <div style="font-size:9px;color:var(--faint);">prev</div>
+      <div style="font-size:12px;font-weight:600;color:var(--sub);">${dayAbbr(prevDate)}${S.sessions[prevDate]?" ✓":""}</div>
+    </button>`:""}
+    <button onclick="" style="flex:1;background:var(--acc);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;cursor:default;">
+      <div style="font-size:9px;color:rgba(255,255,255,.65);">today</div>
+      <div style="font-size:12px;font-weight:700;color:#fff;">${dayAbbr(S.wDate)}</div>
+    </button>
+    <div style="position:relative;flex-shrink:0;">
+      <button onclick="document.getElementById('w-date-picker').focus();document.getElementById('w-date-picker').click();"
+        style="background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:7px 11px;font-size:13px;color:var(--sub);height:100%;display:flex;align-items:center;gap:3px;">
+        📅 <span style="font-size:10px;">▾</span>
+      </button>
+      <input type="date" id="w-date-picker" value="${S.wDate}" onchange="wDate(this.value)"
+        style="position:absolute;opacity:0;pointer-events:none;top:0;left:0;width:1px;height:1px;"/>
+    </div>
+  </div>
+
+  <!-- Timer section (inline, appears when feel is tapped) -->
+  <div id="timer-section"></div>
+
+  <!-- Exercise cards -->
+  <div id="w-cards" style="display:flex;flex-direction:column;gap:10px;">${renderCards_()}</div>
+
+  <!-- Save -->
+  <button id="w-save" onclick="wSave()" class="btn-full btn-acc" style="margin-top:14px;margin-bottom:16px;">Save Session</button>`;
+}
+
+function renderCards_() {
+  const order = getOrder();
+  const slots = getSlots();
+  return order.map((si, dispIdx) => {
+    const slot = slots[si];
+    const oi = S.wSel[si]??0;
+    const sets = getSets(si);
+    const ac = AREA_COLOR[slot.area] || "var(--acc)";
+    const allDone = sets.length > 0 && sets.every(s=>s.feel);
+    const doneCnt = sets.filter(s=>s.feel).length;
+
+    return `
+    <div class="card" style="border-color:${allDone?"var(--grn)":"var(--border)"};">
+      <!-- Block header -->
+      <div style="padding:9px 10px 8px;border-bottom:0.5px solid ${allDone?"var(--grn-soft)":"var(--border)"};">
+        <!-- Row 1: move buttons + area label centered + done indicator -->
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;">
+          <div style="display:flex;flex-direction:column;flex-shrink:0;">
+            <button onclick="wMoveBlock(${dispIdx},-1)" style="background:none;border:none;padding:1px 4px;color:${dispIdx===0?"transparent":"var(--faint)"};font-size:11px;line-height:1;pointer-events:${dispIdx===0?"none":"auto"};">▲</button>
+            <button onclick="wMoveBlock(${dispIdx},1)"  style="background:none;border:none;padding:1px 4px;color:${dispIdx===order.length-1?"transparent":"var(--faint)"};font-size:11px;line-height:1;pointer-events:${dispIdx===order.length-1?"none":"auto"};">▼</button>
+          </div>
+          <div style="flex:1;text-align:center;font-size:10px;font-weight:700;color:${ac};text-transform:uppercase;letter-spacing:.09em;">${slot.area}</div>
+          <div style="font-size:10px;font-weight:700;color:${allDone?"var(--grn)":"var(--faint)"};min-width:28px;text-align:right;">${allDone?"✅":doneCnt+"/"+sets.length}</div>
+        </div>
+        <!-- Exercise picker -->
+        <div style="position:relative;">
+          <select onchange="wEx(${si},parseInt(this.value))"
+            style="width:100%;padding:8px 28px 8px 10px;border-radius:8px;border:0.5px solid ${oi===0?"var(--border)":ac+"66"};background:${oi===0?"var(--bg)":ac+"0f"};font-size:12px;font-weight:600;color:${oi===0?"var(--txt)":ac};outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;">
+            ${slot.options.map((o,i)=>`<option value="${i}" ${oi===i?"selected":""}>${i===0?"★ ":"○ "}${o.name}</option>`).join("")}
+          </select>
+          <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:10px;color:var(--faint);">▾</span>
+        </div>
+      </div>
+
+      <!-- Set table -->
+      <div style="padding:6px 8px 10px;">
+        <!-- Column headers -->
+        <div style="display:grid;grid-template-columns:36px 46px 46px 1fr 48px;gap:3px;padding:0 2px 4px;font-size:9px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.04em;">
+          <span></span>
+          <span style="text-align:center;">Reps</span>
+          <span style="text-align:center;">kg</span>
+          <span style="text-align:center;">Feel</span>
+          <span style="text-align:center;">Rest</span>
+        </div>
+        <!-- Rows -->
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          ${sets.map((s,idx)=>{
+            const fc = s.feel ? FEEL_COLOR[s.feel] : null;
+            return `<div class="set-row" style="background:${fc?fc+"14":"transparent"};border:0.5px solid ${fc?fc+"33":"transparent"};">
+              <span style="font-size:9px;font-weight:700;color:var(--faint);white-space:nowrap;">Set ${s.set}</span>
+              <input type="number" value="${s.reps}" placeholder="—"
+                onchange="wSet(${si},${idx},'reps',this.value)" class="cell-inp"/>
+              <input type="number" value="${s.weight}" placeholder="—"
+                onchange="wSet(${si},${idx},'weight',this.value)" class="cell-inp"/>
+              <div class="feel-wrap" style="--fw-bg:${fc?fc:"var(--bg)"};--fw-color:${fc?"#fff":"var(--faint)"};--fw-border:${fc?fc:"var(--border)"};--fw-arrow:${fc?"rgba(255,255,255,.6)":"var(--faint)"};">
+                <select onchange="wSet(${si},${idx},'feel',this.value)"
+                  style="border-color:${fc?fc:"var(--border)"};background:${fc?fc:"var(--bg)"};color:${fc?"#fff":"var(--faint)"};">
+                  <option value="">Feel</option>
+                  ${FEELS.map(f=>`<option value="${f}" ${s.feel===f?"selected":""}>${f}</option>`).join("")}
+                </select>
+                <span style="position:absolute;right:5px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:9px;color:${fc?"rgba(255,255,255,.6)":"var(--faint)"};">▾</span>
+              </div>
+              <div class="rest-cell" style="border-color:${s.rest?fc||"var(--border)":"var(--border)"};background:${s.rest?fc+"14":"var(--bg)"};color:${s.rest?fc||"var(--faint)":"var(--faint)"};">
+                ${s.rest ? fmtRest(s.rest) : "—"}
+              </div>
+            </div>`;
+          }).join("")}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function renderCards() {
+  const el = document.getElementById("w-cards");
+  if (el) el.innerHTML = renderCards_();
+}
+
+function updateWProgress() {
+  const slots = getSlots(); let tot=0, done=0;
+  slots.forEach((_,i)=>{const s=getSets(i);tot+=s.length;done+=s.filter(x=>x.feel).length;});
+  const pct = tot>0?Math.round(done/tot*100):0;
+  const b = document.getElementById("w-pbar"); if(b) b.style.width=pct+"%";
+  const c = document.getElementById("w-counter"); if(c) c.textContent=done+"/"+tot;
+}
+
+// ── NUTRITION TAB ──────────────────────────────────────────────────────────
 function nDate(d) {
   S.nDate=d;
   const saved=S.nutrition[d];
@@ -495,211 +674,10 @@ function nSave() {
   const b=document.getElementById("n-save");
   if(b){b.textContent="✓ Day Saved";b.classList.replace("btn-acc","btn-grn");setTimeout(()=>{b.textContent="Save Day";b.classList.replace("btn-grn","btn-acc");},2500);}
 }
-
-// ── PROGRESS ACTIONS ──────────────────────────────────────────────────────────
-function pDate(d){S.pDate=d;render();}
-function pSave() {
-  S.progress[S.pDate]={
-    weight:document.getElementById("p-w")?.value||"",
-    sleep: document.getElementById("p-sl")?.value||"",
-    water: document.getElementById("p-wa")?.value||"",
-    steps: document.getElementById("p-st")?.value||"",
-    note:  document.getElementById("p-no")?.value||""
-  };
-  lsSave();
-  const b=document.getElementById("p-save");
-  if(b){b.textContent="✓ Saved";b.classList.replace("btn-acc","btn-grn");setTimeout(()=>{b.textContent="Save Progress";b.classList.replace("btn-grn","btn-acc");},2500);}
-}
-
-// ── RENDER ────────────────────────────────────────────────────────────────────
-function render() {
-  const sy=window.scrollY;
-  document.getElementById("app").innerHTML =
-    renderTopBar()+
-    `<div style="padding:16px 16px 0;">`+
-    (S.tab==="workout"   ? renderWorkoutTab()   : "")+
-    (S.tab==="nutrition" ? renderNutritionTab() : "")+
-    (S.tab==="progress"  ? renderProgressTab()  : "")+
-    `</div>`;
-  renderNav();
-  window.scrollTo(0,sy);
-  renderSyncBadge();
-}
-
-function renderTopBar() {
-  const titles={workout:"Workout",nutrition:"Nutrition",progress:"Progress"};
-  return `<div style="padding:16px 20px 12px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:rgba(245,245,247,.9);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:50;border-bottom:1px solid var(--border);">
-    <div>
-      <div style="font-size:22px;font-weight:800;color:var(--txt);letter-spacing:-.4px;">${titles[S.tab]}</div>
-      <div style="font-size:12px;color:var(--sub);margin-top:1px;">Target 68–70 kg · Jun–Jul 2026</div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span id="sync-badge" style="font-size:11px;font-weight:600;"></span>
-      <div style="text-align:right;">
-        <div style="font-size:13px;font-weight:700;color:var(--txt);">
-          <span contenteditable="true" onblur="S.weight=this.textContent.trim();lsSave();" style="outline:none;border-bottom:1.5px dashed var(--faint);">${S.weight}</span> kg
-        </div>
-        <div style="font-size:11px;color:var(--sub);">
-          <span contenteditable="true" onblur="S.height=this.textContent.trim();lsSave();" style="outline:none;border-bottom:1.5px dashed var(--faint);">${S.height}</span> cm
-        </div>
-      </div>
-    </div>
-  </div>`;
-}
-
-// ── WORKOUT TAB ───────────────────────────────────────────────────────────────
-function renderWorkoutTab() {
-  const wt=getWType(), st=getType(S.wDate), slots=getSlots();
-  let tot=0,done=0;
-  slots.forEach((_,i)=>{const s=getSets(i);tot+=s.length;done+=s.filter(x=>x.feel).length;});
-  const pct=tot>0?Math.round(done/tot*100):0;
-
-  return `
-  <!-- Date + type row -->
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-    <input type="date" value="${S.wDate}" onchange="wDate(this.value)"
-      style="background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--txt);font-size:14px;font-weight:600;padding:8px 12px;outline:none;"/>
-    <div style="display:flex;gap:4px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:4px;">
-      ${["A","B"].map(t=>`<button onclick="wManual('${t}')" style="padding:5px 14px;border-radius:7px;border:none;font-size:13px;font-weight:700;background:${wt===t?"var(--acc)":"transparent"};color:${wt===t?"#fff":"var(--sub)"};">Type ${t}</button>`).join("")}
-    </div>
-    ${S.sessions[S.wDate]?`<span class="badge" style="background:var(--grn-soft);color:var(--grn);">✓ Saved</span>`:""}
-    <span style="margin-left:auto;font-size:13px;font-weight:700;color:var(--sub);" id="w-counter">${done}/${tot} sets</span>
-  </div>
-
-  <!-- Progress bar -->
-  <div style="background:var(--border);border-radius:999px;height:6px;overflow:hidden;margin-bottom:6px;">
-    <div id="w-pbar" style="width:${pct}%;height:100%;background:var(--acc);border-radius:999px;transition:width .3s;"></div>
-  </div>
-  <div style="font-size:12px;color:var(--sub);margin-bottom:16px;font-weight:500;">${pct}% complete</div>
-
-  <!-- Session chips -->
-  <div id="w-chips" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:20px;scrollbar-width:none;">${renderChips()}</div>
-
-  <!-- Exercise cards -->
-  <div id="w-cards" style="display:flex;flex-direction:column;gap:12px;">${renderCards_()}</div>
-
-  <!-- Feel guide -->
-  <div class="card" style="margin-top:16px;">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
-      <div class="sec-head" style="margin:0;">Feel Guide</div>
-    </div>
-    <div style="padding:12px 16px;display:flex;flex-direction:column;gap:8px;">
-      ${FEELS.map(f=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;">
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="width:8px;height:8px;border-radius:50%;background:${FEEL_COLOR[f]};"></div>
-          <span style="font-size:13px;font-weight:700;color:${FEEL_COLOR[f]};">${f}</span>
-          <span style="font-size:12px;color:var(--sub);">${{Easy:"4+ reps left",Med:"2–3 reps left",Hard:"1 rep left ← target",Max:"At limit — drop weight"}[f]}</span>
-        </div>
-        <span style="font-size:12px;color:var(--faint);font-weight:500;">${{Easy:"1–1.5m",Med:"2m",Hard:"2.5–3m",Max:"3m+"}[f]}</span>
-      </div>`).join("")}
-    </div>
-  </div>
-
-  <!-- Plan card -->
-  <div class="card card-pad" style="margin-top:12px;margin-bottom:16px;">
-    <div class="sec-head">Your Plan</div>
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <div style="display:flex;gap:10px;align-items:center;">
-        <span style="font-size:18px;">📅</span>
-        <span style="font-size:13px;color:var(--sub);">Jun 29 – Jul 24 · 4-week block</span>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <span style="font-size:18px;">🎯</span>
-        <span style="font-size:13px;color:var(--sub);">Goal: <strong style="color:var(--txt);">68–70 kg</strong> by Jul 21</span>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;">
-        <span style="font-size:18px;">🔁</span>
-        <span style="font-size:13px;color:var(--sub);">A → B → A → B rotation</span>
-      </div>
-    </div>
-  </div>
-
-  <button id="w-save" onclick="wSave()" class="btn-full btn-acc" style="margin-bottom:16px;">Save Session</button>`;
-}
-
-function renderChips() {
-  return SESSIONS.map((d,i)=>{
-    const t=i%2===0?"A":"B",isSel=d===S.wDate,isT=d===today,has=!!S.sessions[d];
-    const bg=isSel?"var(--acc)":isT?"var(--acc-soft)":has?"var(--grn-soft)":"var(--card)";
-    const col=isSel?"#fff":isT?"var(--acc)":has?"var(--grn)":"var(--sub)";
-    const bord=isSel?"var(--acc)":isT?"var(--acc)":has?"var(--grn)":"var(--border)";
-    return `<button onclick="wDate('${d}')" style="flex-shrink:0;padding:6px 10px;border-radius:10px;border:1.5px solid ${bord};background:${bg};color:${col};font-size:11px;font-weight:700;line-height:1.5;text-align:center;">
-      ${fmtShort(d)}<br/><span style="font-size:10px;opacity:.8;">${t}${has?" ✓":""}</span>
-    </button>`;
-  }).join("");
-}
-
-function renderCards_() {
-  return getSlots().map((slot,si)=>{
-    const oi=S.wSel[si]??0, sets=getSets(si), ac=AREA_COLOR[slot.area]||"var(--acc)";
-    const allDone=sets.every(s=>s.feel);
-    return `
-    <div class="card" style="${allDone?"border-color:var(--grn);background:var(--grn-soft);":""}">
-      <!-- Card header -->
-      <div style="padding:14px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid ${allDone?"rgba(52,199,89,.2)":"var(--border)"};">
-        <div style="width:32px;height:32px;border-radius:10px;background:${ac}18;display:flex;align-items:center;justify-content:center;">
-          <span style="font-size:14px;font-weight:800;color:${ac};">${S.wNums[si]??si+1}</span>
-        </div>
-        <div style="flex:1;">
-          <div style="font-size:12px;font-weight:700;color:${ac};letter-spacing:.04em;">${slot.area.toUpperCase()}</div>
-          <div style="font-size:11px;color:var(--sub);margin-top:1px;">${sets.filter(s=>s.feel).length}/${sets.length} sets done</div>
-        </div>
-        ${allDone?`<span style="font-size:20px;">✅</span>`:""}
-      </div>
-
-      <!-- Exercise picker -->
-      <div style="padding:10px 16px;border-bottom:1px solid ${allDone?"rgba(52,199,89,.2)":"var(--border)"};">
-        <select onchange="wEx(${si},parseInt(this.value))"
-          style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid ${oi===0?"var(--border)":ac+"44"};background:${oi===0?"var(--bg)":ac+"0d"};font-size:13px;font-weight:600;color:${oi===0?"var(--txt)":ac};outline:none;-webkit-appearance:none;">
-          ${slot.options.map((o,i)=>`<option value="${i}" ${oi===i?"selected":""}>${["★ ","○ ","◇ "][i]||"◇ "}${o.name}</option>`).join("")}
-        </select>
-      </div>
-
-      <!-- Sets -->
-      <div style="padding:10px 16px 14px;">
-        <div style="display:grid;grid-template-columns:44px 1fr 1fr 1fr;gap:6px;margin-bottom:6px;padding:0 2px;">
-          <span style="font-size:10px;font-weight:600;color:var(--faint);text-transform:uppercase;"></span>
-          <span style="font-size:10px;font-weight:600;color:var(--faint);text-transform:uppercase;text-align:center;">Reps</span>
-          <span style="font-size:10px;font-weight:600;color:var(--faint);text-transform:uppercase;text-align:center;">kg</span>
-          <span style="font-size:10px;font-weight:600;color:var(--faint);text-transform:uppercase;text-align:center;">Feel</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:5px;">
-          ${sets.map((s,idx)=>{
-            const fc=s.feel?FEEL_COLOR[s.feel]:null;
-            return `<div style="display:grid;grid-template-columns:44px 1fr 1fr 1fr;gap:6px;align-items:center;padding:8px 8px;border-radius:10px;background:${fc?fc+"14":"var(--bg)"};border:1px solid ${fc?fc+"33":"transparent"};">
-              <span style="font-size:12px;font-weight:700;color:var(--faint);">S${s.set}</span>
-              <input type="number" value="${s.reps}" placeholder="${slot.reps}"
-                onchange="wSet(${si},${idx},'reps',this.value)"
-                style="background:var(--card);border:1.5px solid var(--border);border-radius:8px;color:var(--txt);font-size:15px;font-weight:700;padding:7px 4px;text-align:center;outline:none;width:100%;"/>
-              <input type="number" value="${s.weight}" placeholder="—"
-                onchange="wSet(${si},${idx},'weight',this.value)"
-                style="background:var(--card);border:1.5px solid var(--border);border-radius:8px;color:var(--txt);font-size:15px;font-weight:700;padding:7px 4px;text-align:center;outline:none;width:100%;"/>
-              <div style="display:flex;gap:3px;">
-                ${FEELS.map(f=>`<button onclick="wSet(${si},${idx},'feel','${s.feel===f?"":f}')"
-                  style="flex:1;padding:5px 1px;border-radius:7px;border:1.5px solid ${s.feel===f?FEEL_COLOR[f]:"var(--border)"};background:${s.feel===f?FEEL_COLOR[f]:"transparent"};color:${s.feel===f?"#fff":"var(--faint)"};font-size:9px;font-weight:700;">${f[0]}</button>`).join("")}
-              </div>
-            </div>`;
-          }).join("")}
-        </div>
-      </div>
-    </div>`;
-  }).join("");
-}
-
-function renderCards() { const el=document.getElementById("w-cards"); if(el) el.innerHTML=renderCards_(); }
-function updateWProgress() {
-  const slots=getSlots(); let tot=0,done=0;
-  slots.forEach((_,i)=>{const s=getSets(i);tot+=s.length;done+=s.filter(x=>x.feel).length;});
-  const pct=tot>0?Math.round(done/tot*100):0;
-  const b=document.getElementById("w-pbar"); if(b) b.style.width=pct+"%";
-  const c=document.getElementById("w-counter"); if(c) c.textContent=done+"/"+tot+" sets";
-}
-
-// ── NUTRITION TAB ─────────────────────────────────────────────────────────────
 function calcTot() {
   return S.nMeals.reduce((a,m)=>({calories:a.calories+(+m.calories||0),protein:a.protein+(+m.protein||0),carbs:a.carbs+(+m.carbs||0),fat:a.fat+(+m.fat||0)}),{calories:0,protein:0,carbs:0,fat:0});
 }
+
 function renderNutritionTab() {
   const tot=calcTot(), saved=S.nutrition[S.nDate];
   const macros=[
@@ -714,8 +692,6 @@ function renderNutritionTab() {
       style="background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--txt);font-size:14px;font-weight:600;padding:8px 12px;outline:none;flex:1;"/>
     ${saved?`<span class="badge" style="background:var(--grn-soft);color:var(--grn);">✓ Saved</span>`:""}
   </div>
-
-  <!-- Macro cards -->
   <div id="n-tots" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
     ${macros.map(m=>{
       const v=tot[m.k]||0,p=Math.min(Math.round(v/m.t*100),100);
@@ -729,8 +705,6 @@ function renderNutritionTab() {
       </div>`;
     }).join("")}
   </div>
-
-  <!-- Meals -->
   <div class="sec-head">Meals</div>
   <div style="display:flex;flex-direction:column;gap:10px;">
     ${S.nMeals.map((meal,i)=>`
@@ -750,21 +724,20 @@ function renderNutritionTab() {
       </div>
     </div>`).join("")}
   </div>
-
   <button onclick="nAdd()" style="margin-top:10px;width:100%;padding:12px;border-radius:12px;border:1.5px dashed var(--border);background:transparent;color:var(--sub);font-size:14px;font-weight:600;">+ Add Meal</button>
   <button id="n-save" onclick="nSave()" class="btn-full btn-acc" style="margin-top:10px;margin-bottom:16px;">Save Day</button>`;
 }
 
 function updateNutTotals() {
-  const el=document.getElementById("n-tots"); if(!el) return;
-  const tot=calcTot();
-  const macros=[
+  const el = document.getElementById("n-tots"); if(!el) return;
+  const tot = calcTot();
+  const macros = [
     {k:"calories",l:"Calories",u:"kcal",c:"var(--acc)",t:NUT_TARGET.calories},
     {k:"protein", l:"Protein", u:"g",   c:"var(--grn)",t:NUT_TARGET.protein},
     {k:"carbs",   l:"Carbs",   u:"g",   c:"var(--yel)",t:NUT_TARGET.carbs},
     {k:"fat",     l:"Fat",     u:"g",   c:"var(--pur)",t:NUT_TARGET.fat},
   ];
-  el.innerHTML=macros.map(m=>{
+  el.innerHTML = macros.map(m=>{
     const v=tot[m.k]||0,p=Math.min(Math.round(v/m.t*100),100);
     return `<div class="card card-pad">
       <div style="font-size:11px;font-weight:700;color:${m.c};margin-bottom:2px;letter-spacing:.04em;">${m.l.toUpperCase()}</div>
@@ -777,14 +750,28 @@ function updateNutTotals() {
   }).join("");
 }
 
-// ── PROGRESS TAB ──────────────────────────────────────────────────────────────
+// ── PROGRESS TAB ───────────────────────────────────────────────────────────
+function pDate(d){S.pDate=d;render();}
+function pSave() {
+  S.progress[S.pDate]={
+    weight:document.getElementById("p-w")?.value||"",
+    sleep: document.getElementById("p-sl")?.value||"",
+    water: document.getElementById("p-wa")?.value||"",
+    steps: document.getElementById("p-st")?.value||"",
+    note:  document.getElementById("p-no")?.value||""
+  };
+  lsSave();
+  const b=document.getElementById("p-save");
+  if(b){b.textContent="✓ Saved";b.classList.replace("btn-acc","btn-grn");setTimeout(()=>{b.textContent="Save Progress";b.classList.replace("btn-grn","btn-acc");},2500);}
+}
+
 function renderProgressTab() {
   const p=S.progress[S.pDate]||{}, nut=S.nutrition[S.pDate], ses=S.sessions[S.pDate];
   const hist=Object.keys(S.progress).sort((a,b)=>b.localeCompare(a));
   const metrics=[
-    {id:"p-w", l:"Body Weight",v:p.weight||"",u:"kg",  c:"var(--acc)",ph:"61.5",icon:"⚖️"},
-    {id:"p-sl",l:"Sleep",      v:p.sleep||"", u:"hrs", c:"var(--pur)",ph:"7.5", icon:"😴"},
-    {id:"p-wa",l:"Water",      v:p.water||"", u:"ml",  c:"var(--blu)",ph:"2000",icon:"💧"},
+    {id:"p-w", l:"Body Weight",v:p.weight||"",u:"kg",   c:"var(--acc)",ph:"61.5",icon:"⚖️"},
+    {id:"p-sl",l:"Sleep",      v:p.sleep||"", u:"hrs",  c:"var(--pur)",ph:"7.5", icon:"😴"},
+    {id:"p-wa",l:"Water",      v:p.water||"", u:"ml",   c:"var(--blu)",ph:"2000",icon:"💧"},
     {id:"p-st",l:"Steps",      v:p.steps||"", u:"steps",c:"var(--grn)",ph:"6000",icon:"👟"},
   ];
   return `
@@ -793,8 +780,6 @@ function renderProgressTab() {
       style="background:var(--card);border:1.5px solid var(--border);border-radius:10px;color:var(--txt);font-size:14px;font-weight:600;padding:8px 12px;outline:none;flex:1;"/>
     ${S.progress[S.pDate]?`<span class="badge" style="background:var(--grn-soft);color:var(--grn);">✓ Saved</span>`:""}
   </div>
-
-  <!-- Metric inputs -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
     ${metrics.map(f=>`
     <div class="card card-pad">
@@ -809,20 +794,13 @@ function renderProgressTab() {
       </div>
     </div>`).join("")}
   </div>
-
-  <!-- Nutrition summary -->
   <div class="card card-pad" style="margin-bottom:12px;">
     <div class="sec-head">Nutrition — From Log</div>
     ${nut?`<div style="display:flex;gap:16px;flex-wrap:wrap;">
       ${[["calories","kcal","var(--acc)"],["protein","g protein","var(--grn)"],["carbs","g carbs","var(--yel)"],["fat","g fat","var(--pur)"]].map(([k,u,c])=>`
-      <div>
-        <div style="font-size:20px;font-weight:800;color:${c};">${Math.round(nut.totals[k])}</div>
-        <div style="font-size:11px;color:var(--sub);">${u}</div>
-      </div>`).join("")}
+      <div><div style="font-size:20px;font-weight:800;color:${c};">${Math.round(nut.totals[k])}</div><div style="font-size:11px;color:var(--sub);">${u}</div></div>`).join("")}
     </div>`:`<div style="font-size:13px;color:var(--faint);">No nutrition logged for this day</div>`}
   </div>
-
-  <!-- Workout feel -->
   <div class="card card-pad" style="margin-bottom:12px;">
     <div class="sec-head">Workout Feel</div>
     ${ses?ses.exercises.map(ex=>{
@@ -841,17 +819,12 @@ function renderProgressTab() {
       </div>`;
     }).join(""):`<div style="font-size:13px;color:var(--faint);">No workout saved for this date</div>`}
   </div>
-
-  <!-- Note -->
   <div style="margin-bottom:12px;">
     <div class="sec-head">Day Note</div>
     <textarea id="p-no" placeholder="How did you feel today?" rows="2"
       style="width:100%;background:var(--card);border:1.5px solid var(--border);border-radius:12px;color:var(--txt);padding:12px;font-size:14px;resize:none;outline:none;">${p.note||""}</textarea>
   </div>
-
   <button id="p-save" onclick="pSave()" class="btn-full btn-acc" style="margin-bottom:16px;">Save Progress</button>
-
-  <!-- History -->
   ${hist.length?`
   <div class="sec-head" style="margin-top:4px;">History</div>
   <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
@@ -872,19 +845,20 @@ function renderProgressTab() {
         ${e.note?`<div style="font-size:12px;color:var(--sub);border-top:1px solid var(--border);padding-top:8px;">📝 ${e.note}</div>`:""}
       </div>`;
     }).join("")}
-  </div>`:""}`;
+  </div>`:""}`
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// ── INIT ───────────────────────────────────────────────────────────────────
 async function init() {
   lsLoad();
+  resumeTimerIfActive();
   render();
   try {
     await sbInit();
     if (!_userId) return;
     await sbLoad();
     render();
-    S.syncStatus="synced";
+    S.syncStatus = "synced";
     renderSyncBadge();
   } catch(e) {
     console.warn("Cloud sync unavailable:", e);
