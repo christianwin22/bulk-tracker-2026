@@ -631,8 +631,8 @@ function render() {
 
 function renderStickyHeader() {
   const bg = "rgba(255,255,255,0.96)";
-  let html = `<div style="position:sticky;top:0;z-index:50;background:${bg};backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
-    <div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid var(--border);">
+  let html = `<div style="position:sticky;top:0;z-index:50;">
+    <div style="background:${bg};backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid var(--border);">
       <div>
         <div style="font-size:20px;font-weight:800;color:var(--txt);letter-spacing:-.4px;">${{workout:"Workout",nutrition:"Nutrition",progress:"Progress"}[S.tab]}</div>
       </div>
@@ -672,12 +672,12 @@ function renderWorkoutFixedHeader() {
   const label = S.wDate===today ? "today" : fmtLong(S.wDate);
 
   return `
-  <!-- Unified header + day-nav block (same background, no divider between) -->
-  <div style="padding:8px 14px 6px;">
+  <!-- Unified header + day-nav block, page background (same as behind the workout box) -->
+  <div style="background:var(--bg);padding:8px 14px 6px;">
     <div style="font-size:16px;font-weight:700;color:var(--txt);">${fmtLong(S.wDate)} · Type ${wt}</div>
     <div style="font-size:11px;color:var(--sub);margin:2px 0 10px;">${areas}</div>
     <div style="display:flex;gap:6px;align-items:stretch;">
-      <button onclick="${prevDate?`wDate('${prevDate}')`:'null'}" style="flex-shrink:0;background:var(--bg);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${prevDate?1:0.3};pointer-events:${prevDate?"auto":"none"};">
+      <button onclick="${prevDate?`wDate('${prevDate}')`:'null'}" style="flex-shrink:0;background:var(--card);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${prevDate?1:0.3};pointer-events:${prevDate?"auto":"none"};">
         <div style="font-size:9px;color:var(--faint);">◀ prev</div>
         <div style="font-size:12px;font-weight:600;color:var(--sub);">${prevDate?dayAbbr(prevDate):"—"}</div>
       </button>
@@ -685,12 +685,12 @@ function renderWorkoutFixedHeader() {
         <div style="font-size:9px;color:rgba(255,255,255,.65);">${label}</div>
         <div style="font-size:12px;font-weight:700;color:#fff;">${dayAbbr(S.wDate)}</div>
       </button>
-      <button onclick="${nextDate?`wDate('${nextDate}')`:'null'}" style="flex-shrink:0;background:var(--bg);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${nextDate?1:0.3};pointer-events:${nextDate?"auto":"none"};">
+      <button onclick="${nextDate?`wDate('${nextDate}')`:'null'}" style="flex-shrink:0;background:var(--card);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${nextDate?1:0.3};pointer-events:${nextDate?"auto":"none"};">
         <div style="font-size:9px;color:var(--faint);">next ▶</div>
         <div style="font-size:12px;font-weight:600;color:var(--sub);">${nextDate?dayAbbr(nextDate):"—"}</div>
       </button>
       <div style="position:relative;flex-shrink:0;">
-        <button onclick="toggleCalendar()" style="background:var(--bg);border:none;border-radius:10px;padding:7px 11px;font-size:13px;color:var(--sub);height:100%;display:flex;align-items:center;gap:3px;">
+        <button onclick="toggleCalendar()" style="background:var(--card);border:none;border-radius:10px;padding:7px 11px;font-size:13px;color:var(--sub);height:100%;display:flex;align-items:center;gap:3px;">
           📅 <span style="font-size:10px;">▾</span>
         </button>
         <div id="cal-dropdown"></div>
@@ -699,7 +699,7 @@ function renderWorkoutFixedHeader() {
   </div>
 
   <!-- Range text, same page background, divider below, tight to day-nav above -->
-  <div style="font-size:10px;color:var(--faint);text-align:center;padding:3px 0 6px;border-bottom:0.5px solid var(--border);">${rangeStr}</div>`;
+  <div style="background:var(--bg);font-size:10px;color:var(--faint);text-align:center;padding:3px 0 6px;border-bottom:0.5px solid var(--border);">${rangeStr}</div>`;
 }
 
 function renderWorkoutTab() {
