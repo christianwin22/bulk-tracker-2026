@@ -606,7 +606,7 @@ function render() {
   try {
     const sy = window.scrollY;
     document.getElementById("app").innerHTML =
-      renderTopBar()+
+      renderStickyHeader()+
       `<div style="padding:12px 12px 0;">`+
       (S.tab==="workout"   ? renderWorkoutTab()   : "")+
       (S.tab==="nutrition" ? renderNutritionTab() : "")+
@@ -629,31 +629,36 @@ function render() {
   }
 }
 
-function renderTopBar() {
-  return `<div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:rgba(240,244,248,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:50;border-bottom:1px solid var(--border);">
-    <div>
-      <div style="font-size:20px;font-weight:800;color:var(--txt);letter-spacing:-.4px;">${{workout:"Workout",nutrition:"Nutrition",progress:"Progress"}[S.tab]}</div>
-    </div>
-    <div style="position:relative;">
-      <div id="avatar-btn" onclick="toggleProfileMenu()" style="width:32px;height:32px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;user-select:none;">${_userInitials}</div>
-    </div>
-  </div>
-  <div id="profile-menu" style="display:none;position:absolute;top:58px;right:12px;background:var(--card);border:0.5px solid var(--border);border-radius:14px;width:220px;z-index:200;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1);">
-    <div style="padding:12px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:10px;">
-      <div style="width:34px;height:34px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">${_userInitials}</div>
-      <div style="overflow:hidden;">
-        <div style="font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_userEmail}</div>
-        <div style="font-size:11px;color:var(--sub);">Synced ✓</div>
+function renderStickyHeader() {
+  const bg = "rgba(255,255,255,0.96)";
+  let html = `<div style="position:sticky;top:0;z-index:50;background:${bg};backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
+    <div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid var(--border);">
+      <div>
+        <div style="font-size:20px;font-weight:800;color:var(--txt);letter-spacing:-.4px;">${{workout:"Workout",nutrition:"Nutrition",progress:"Progress"}[S.tab]}</div>
+      </div>
+      <div style="position:relative;">
+        <div id="avatar-btn" onclick="toggleProfileMenu()" style="width:32px;height:32px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;user-select:none;">${_userInitials}</div>
       </div>
     </div>
-    <div onclick="doSignOut()" style="padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;color:#ff3b30;">
-      <span style="font-size:16px;">↩</span> Sign out
-    </div>
-  </div>`;
+    <div id="profile-menu" style="display:none;position:absolute;top:58px;right:12px;background:var(--card);border:0.5px solid var(--border);border-radius:14px;width:220px;z-index:200;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1);">
+      <div style="padding:12px 14px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:10px;">
+        <div style="width:34px;height:34px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;">${_userInitials}</div>
+        <div style="overflow:hidden;">
+          <div style="font-size:12px;font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_userEmail}</div>
+          <div style="font-size:11px;color:var(--sub);">Synced ✓</div>
+        </div>
+      </div>
+      <div onclick="doSignOut()" style="padding:13px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;color:#ff3b30;">
+        <span style="font-size:16px;">↩</span> Sign out
+      </div>
+    </div>`;
+  if (S.tab === "workout") html += renderWorkoutFixedHeader();
+  html += `</div>`;
+  return html;
 }
 
 // ── WORKOUT TAB ────────────────────────────────────────────────────────────
-function renderWorkoutTab() {
+function renderWorkoutFixedHeader() {
   const wt = getWType(), slots = getSlots();
   const areas = slots.map(s=>s.area).join(" · ");
 
@@ -668,11 +673,11 @@ function renderWorkoutTab() {
 
   return `
   <!-- Unified header + day-nav block (same background, no divider between) -->
-  <div style="margin:0 -12px;padding:12px 14px 12px;">
+  <div style="padding:8px 14px 6px;">
     <div style="font-size:16px;font-weight:700;color:var(--txt);">${fmtLong(S.wDate)} · Type ${wt}</div>
-    <div style="font-size:11px;color:var(--sub);margin:2px 0 12px;">${areas}</div>
+    <div style="font-size:11px;color:var(--sub);margin:2px 0 10px;">${areas}</div>
     <div style="display:flex;gap:6px;align-items:stretch;">
-      <button onclick="${prevDate?`wDate('${prevDate}')`:'null'}" style="flex-shrink:0;background:var(--card);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${prevDate?1:0.3};pointer-events:${prevDate?"auto":"none"};">
+      <button onclick="${prevDate?`wDate('${prevDate}')`:'null'}" style="flex-shrink:0;background:var(--bg);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${prevDate?1:0.3};pointer-events:${prevDate?"auto":"none"};">
         <div style="font-size:9px;color:var(--faint);">◀ prev</div>
         <div style="font-size:12px;font-weight:600;color:var(--sub);">${prevDate?dayAbbr(prevDate):"—"}</div>
       </button>
@@ -680,12 +685,12 @@ function renderWorkoutTab() {
         <div style="font-size:9px;color:rgba(255,255,255,.65);">${label}</div>
         <div style="font-size:12px;font-weight:700;color:#fff;">${dayAbbr(S.wDate)}</div>
       </button>
-      <button onclick="${nextDate?`wDate('${nextDate}')`:'null'}" style="flex-shrink:0;background:var(--card);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${nextDate?1:0.3};pointer-events:${nextDate?"auto":"none"};">
+      <button onclick="${nextDate?`wDate('${nextDate}')`:'null'}" style="flex-shrink:0;background:var(--bg);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${nextDate?1:0.3};pointer-events:${nextDate?"auto":"none"};">
         <div style="font-size:9px;color:var(--faint);">next ▶</div>
         <div style="font-size:12px;font-weight:600;color:var(--sub);">${nextDate?dayAbbr(nextDate):"—"}</div>
       </button>
       <div style="position:relative;flex-shrink:0;">
-        <button onclick="toggleCalendar()" style="background:var(--card);border:none;border-radius:10px;padding:7px 11px;font-size:13px;color:var(--sub);height:100%;display:flex;align-items:center;gap:3px;">
+        <button onclick="toggleCalendar()" style="background:var(--bg);border:none;border-radius:10px;padding:7px 11px;font-size:13px;color:var(--sub);height:100%;display:flex;align-items:center;gap:3px;">
           📅 <span style="font-size:10px;">▾</span>
         </button>
         <div id="cal-dropdown"></div>
@@ -693,11 +698,14 @@ function renderWorkoutTab() {
     </div>
   </div>
 
-  <!-- Range text, same page background, divider below -->
-  <div style="font-size:10px;color:var(--faint);text-align:center;padding:8px 0;margin:0 -12px;border-bottom:0.5px solid var(--border);">${rangeStr}</div>
+  <!-- Range text, same page background, divider below, tight to day-nav above -->
+  <div style="font-size:10px;color:var(--faint);text-align:center;padding:3px 0 6px;border-bottom:0.5px solid var(--border);">${rangeStr}</div>`;
+}
 
+function renderWorkoutTab() {
+  return `
   <!-- Exercise cards -->
-  <div id="w-cards" style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">${renderCards_()}</div>
+  <div id="w-cards" style="display:flex;flex-direction:column;gap:10px;">${renderCards_()}</div>
 
   <!-- Save -->
   <button id="w-save" onclick="wSave()" class="btn-full btn-acc" style="margin-top:14px;margin-bottom:16px;">Save Session</button>`;
