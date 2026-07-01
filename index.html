@@ -52,14 +52,7 @@ body { padding-bottom: 0; }
 .nav-icon { font-size: 20px; line-height: 1; }
 .nav-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; }
 
-/* FIXED DAY BAR + TIMER OVERLAY (workout tab only) */
-#daybar-fixed {
-  position: fixed; left: 0; right: 0; z-index: 95;
-  background: rgba(255,255,255,0.97);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border);
-  padding: 8px 12px max(8px, env(safe-area-inset-bottom));
-}
+/* TIMER OVERLAY (fixed above bottom nav, workout tab only) */
 #timer-overlay { position: fixed; left: 0; right: 0; z-index: 96; padding: 0 12px; }
 
 /* ── DESKTOP layout (≥ 640px) ── */
@@ -83,7 +76,7 @@ body { padding-bottom: 0; }
   .nav-icon { font-size: 18px; }
   .nav-label { font-size: 13px; font-weight: 600; letter-spacing: 0; }
   #app { margin-left: 200px; max-width: 720px; padding: 0 24px; }
-  #daybar-fixed, #timer-overlay { left: 200px; }
+  #timer-overlay { left: 200px; }
 }
 
 /* CARDS */
@@ -125,7 +118,6 @@ body { padding-bottom: 0; }
 </head>
 <body>
 <div id="app"></div>
-<div id="daybar-fixed" style="display:none;"></div>
 <div id="timer-overlay" style="display:none;"></div>
 <div id="nav" style="display:none;"></div>
 
@@ -138,7 +130,8 @@ const SESSIONS = [
   "2026-06-29","2026-07-01","2026-07-03",
   "2026-07-06","2026-07-08","2026-07-10",
   "2026-07-13","2026-07-15","2026-07-17",
-  "2026-07-20","2026-07-22","2026-07-24"
+  "2026-07-20","2026-07-22","2026-07-24",
+  "2026-07-27","2026-07-29","2026-07-31"
 ];
 const SLOTS = {
   A: [
@@ -175,7 +168,7 @@ function defaultMeals() {
 
 let S = {
   tab:"workout", height:"172", weight:"—",
-  feelPicker:null, wCollapsed:{},
+  feelPicker:null, wCollapsed:{}, calOpen:false, calMonth:"",
   wDate:nearestSession(), wManual:null, wSel:{}, wOrder:{},
   wNums:{0:"1",1:"2",2:"3",3:"4"},
   wSets:{
@@ -315,23 +308,15 @@ function renderTimerSection() {
   layoutBottomBars();
 }
 
-// ── BOTTOM BAR LAYOUT (day bar + timer overlay stack above nav) ─────────────
+// ── BOTTOM BAR LAYOUT (timer overlay stacks above nav) ──────────────────────
 function layoutBottomBars() {
   const nav = document.getElementById("nav");
-  const daybar = document.getElementById("daybar-fixed");
   const timer = document.getElementById("timer-overlay");
   const isDesktop = window.innerWidth >= 640;
   const navH = (!isDesktop && nav && nav.style.display !== "none") ? nav.offsetHeight : 0;
-  let daybarH = 0;
-  if (daybar) {
-    daybar.style.bottom = navH + "px";
-    if (daybar.style.display !== "none") daybarH = daybar.offsetHeight;
-  }
-  if (timer) {
-    timer.style.bottom = (navH + daybarH) + "px";
-  }
+  if (timer) timer.style.bottom = navH + "px";
   const app = document.getElementById("app");
-  if (app) app.style.paddingBottom = (navH + daybarH + 16) + "px";
+  if (app) app.style.paddingBottom = (navH + 16) + "px";
 }
 
 // ── SUPABASE ───────────────────────────────────────────────────────────────
@@ -628,10 +613,9 @@ function render() {
       (S.tab==="progress"  ? renderProgressTab()  : "")+
       `</div>`;
     renderNav();
-    renderDayBar();
     window.scrollTo(0,sy);
     renderSyncBadge();
-    if (S.tab==="workout") renderTimerSection();
+    if (S.tab==="workout") { renderTimerSection(); renderCalendar(); }
     layoutBottomBars();
   } catch(e) {
     document.getElementById("app").innerHTML =
@@ -646,14 +630,9 @@ function render() {
 }
 
 function renderTopBar() {
-  const start = SESSIONS[0], end = SESSIONS[SESSIONS.length-1];
-  const days = Math.round((new Date(end)-new Date(start))/(1000*60*60*24))+1;
-  const fmt = d => new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
-  const subtitle = `${fmt(start)} – ${fmt(end)} · ${days} days`;
   return `<div style="padding:14px 16px 10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:rgba(240,244,248,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);z-index:50;border-bottom:1px solid var(--border);">
     <div>
       <div style="font-size:20px;font-weight:800;color:var(--txt);letter-spacing:-.4px;">${{workout:"Workout",nutrition:"Nutrition",progress:"Progress"}[S.tab]}</div>
-      <div style="font-size:11px;color:var(--sub);margin-top:1px;">${subtitle}</div>
     </div>
     <div style="position:relative;">
       <div id="avatar-btn" onclick="toggleProfileMenu()" style="width:32px;height:32px;border-radius:50%;background:var(--acc);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;user-select:none;">${_userInitials}</div>
@@ -678,27 +657,6 @@ function renderWorkoutTab() {
   const wt = getWType(), slots = getSlots();
   const areas = slots.map(s=>s.area).join(" · ");
 
-  return `
-  <!-- Session header (plain text, no card) -->
-  <div style="padding:2px 2px 12px;">
-    <div style="font-size:16px;font-weight:700;color:var(--txt);">${fmtLong(S.wDate)} · Type ${wt}</div>
-    <div style="font-size:11px;color:var(--sub);margin-top:2px;">${areas}</div>
-  </div>
-
-  <!-- Exercise cards -->
-  <div id="w-cards" style="display:flex;flex-direction:column;gap:10px;">${renderCards_()}</div>
-
-  <!-- Save -->
-  <button id="w-save" onclick="wSave()" class="btn-full btn-acc" style="margin-top:14px;margin-bottom:16px;">Save Session</button>`;
-}
-
-// ── FIXED DAY BAR (prev/today/next + calendar, pinned above nav) ───────────
-function renderDayBar() {
-  const el = document.getElementById("daybar-fixed");
-  if (!el) return;
-  if (S.tab !== "workout") { el.style.display = "none"; return; }
-  el.style.display = "block";
-
   const idx = SESSIONS.indexOf(S.wDate);
   const prevDate = idx>0 ? SESSIONS[idx-1] : null;
   const nextDate = idx>=0 && idx<SESSIONS.length-1 ? SESSIONS[idx+1] : null;
@@ -708,10 +666,13 @@ function renderDayBar() {
   const rangeStr = `${fmt(start)} – ${fmt(end)} · ${days} days`;
   const label = S.wDate===today ? "today" : fmtLong(S.wDate);
 
-  el.innerHTML = `
-    <div style="font-size:10px;color:var(--faint);text-align:center;padding-bottom:6px;">${rangeStr}</div>
+  return `
+  <!-- Unified header + day-nav block (same background, no divider between) -->
+  <div style="margin:0 -12px;padding:12px 14px 12px;">
+    <div style="font-size:16px;font-weight:700;color:var(--txt);">${fmtLong(S.wDate)} · Type ${wt}</div>
+    <div style="font-size:11px;color:var(--sub);margin:2px 0 12px;">${areas}</div>
     <div style="display:flex;gap:6px;align-items:stretch;">
-      <button onclick="${prevDate?`wDate('${prevDate}')`:'null'}" style="flex-shrink:0;background:var(--bg);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${prevDate?1:0.3};pointer-events:${prevDate?"auto":"none"};">
+      <button onclick="${prevDate?`wDate('${prevDate}')`:'null'}" style="flex-shrink:0;background:var(--card);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${prevDate?1:0.3};pointer-events:${prevDate?"auto":"none"};">
         <div style="font-size:9px;color:var(--faint);">◀ prev</div>
         <div style="font-size:12px;font-weight:600;color:var(--sub);">${prevDate?dayAbbr(prevDate):"—"}</div>
       </button>
@@ -719,27 +680,103 @@ function renderDayBar() {
         <div style="font-size:9px;color:rgba(255,255,255,.65);">${label}</div>
         <div style="font-size:12px;font-weight:700;color:#fff;">${dayAbbr(S.wDate)}</div>
       </button>
-      <button onclick="${nextDate?`wDate('${nextDate}')`:'null'}" style="flex-shrink:0;background:var(--bg);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${nextDate?1:0.3};pointer-events:${nextDate?"auto":"none"};">
+      <button onclick="${nextDate?`wDate('${nextDate}')`:'null'}" style="flex-shrink:0;background:var(--card);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${nextDate?1:0.3};pointer-events:${nextDate?"auto":"none"};">
         <div style="font-size:9px;color:var(--faint);">next ▶</div>
         <div style="font-size:12px;font-weight:600;color:var(--sub);">${nextDate?dayAbbr(nextDate):"—"}</div>
       </button>
       <div style="position:relative;flex-shrink:0;">
-        <button onclick="document.getElementById('w-date-picker').focus();document.getElementById('w-date-picker').click();"
-          style="background:var(--bg);border:0.5px solid var(--border);border-radius:10px;padding:7px 11px;font-size:13px;color:var(--sub);height:100%;display:flex;align-items:center;gap:3px;">
+        <button onclick="toggleCalendar()" style="background:var(--card);border:none;border-radius:10px;padding:7px 11px;font-size:13px;color:var(--sub);height:100%;display:flex;align-items:center;gap:3px;">
           📅 <span style="font-size:10px;">▾</span>
         </button>
-        <input type="date" id="w-date-picker" value="${S.wDate}" onchange="wDate(this.value)"
-          style="position:absolute;opacity:0;pointer-events:none;top:0;left:0;width:1px;height:1px;"/>
+        <div id="cal-dropdown"></div>
       </div>
-    </div>`;
+    </div>
+  </div>
+
+  <!-- Range text, same page background, divider below -->
+  <div style="font-size:10px;color:var(--faint);text-align:center;padding:8px 0;margin:0 -12px;border-bottom:0.5px solid var(--border);">${rangeStr}</div>
+
+  <!-- Exercise cards -->
+  <div id="w-cards" style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">${renderCards_()}</div>
+
+  <!-- Save -->
+  <button id="w-save" onclick="wSave()" class="btn-full btn-acc" style="margin-top:14px;margin-bottom:16px;">Save Session</button>`;
 }
+
+// ── CUSTOM CALENDAR DROPDOWN ─────────────────────────────────────────────────
+function toggleCalendar() {
+  S.calOpen = !S.calOpen;
+  if (S.calOpen) S.calMonth = S.wDate.slice(0,7);
+  renderCalendar();
+}
+function calNav(delta) {
+  const [y,m] = S.calMonth.split("-").map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  S.calMonth = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+  renderCalendar();
+}
+function calPick(dateStr) {
+  if (!SESSIONS.includes(dateStr)) return;
+  S.calOpen = false;
+  wDate(dateStr);
+}
+function renderCalendar() {
+  const el = document.getElementById("cal-dropdown");
+  if (!el) return;
+  if (!S.calOpen) { el.innerHTML = ""; return; }
+
+  const [y,m] = S.calMonth.split("-").map(Number);
+  const first = new Date(y, m-1, 1);
+  const startOffset = first.getDay(); // 0=Sun
+  const daysInMonth = new Date(y, m, 0).getDate();
+  const monthLabel = first.toLocaleDateString("en-GB",{month:"long",year:"numeric"});
+  const rangeStart = SESSIONS[0], rangeEnd = SESSIONS[SESSIONS.length-1];
+
+  let cells = "";
+  for (let i=0;i<startOffset;i++) cells += `<div></div>`;
+  for (let day=1; day<=daysInMonth; day++) {
+    const ds = y+"-"+String(m).padStart(2,"0")+"-"+String(day).padStart(2,"0");
+    const isSession = SESSIONS.includes(ds);
+    const inRange = ds>=rangeStart && ds<=rangeEnd;
+    const isSelected = ds===S.wDate;
+    let bg, color, cursor, extra="";
+    if (isSession) { bg="var(--acc-soft)"; color="var(--acc-dark)"; cursor="pointer"; }
+    else if (inRange) { bg="var(--card)"; color="var(--faint)"; cursor="default"; }
+    else { bg="var(--bg)"; color="var(--faint)"; cursor="default"; }
+    if (isSelected) extra = "box-shadow:0 0 0 1.5px var(--acc) inset;font-weight:700;";
+    cells += `<div onclick="${isSession?`calPick('${ds}')`:""}" style="aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;border-radius:8px;background:${bg};color:${color};cursor:${cursor};${extra}">${day}</div>`;
+  }
+
+  el.innerHTML = `
+  <div style="position:absolute;top:calc(100% + 6px);right:0;background:var(--card);border:0.5px solid var(--border);border-radius:14px;width:260px;padding:14px;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,.12);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <button onclick="calNav(-1)" style="background:none;border:none;font-size:13px;color:var(--sub);padding:4px 8px;">◀</button>
+      <div style="font-size:13px;font-weight:700;color:var(--txt);">${monthLabel}</div>
+      <button onclick="calNav(1)" style="background:none;border:none;font-size:13px;color:var(--sub);padding:4px 8px;">▶</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:2px;">
+      ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>`<div style="font-size:9px;font-weight:700;color:var(--faint);text-align:center;">${d}</div>`).join("")}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">${cells}</div>
+    <div style="display:flex;gap:12px;margin-top:10px;font-size:10px;color:var(--sub);">
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--acc-soft);margin-right:4px;"></span>Workout day</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--bg);margin-right:4px;border:0.5px solid var(--border);"></span>Locked</span>
+    </div>
+  </div>`;
+}
+document.addEventListener("click", e => {
+  if (!S.calOpen) return;
+  const dd = document.getElementById("cal-dropdown");
+  if (dd && !dd.contains(e.target) && !e.target.closest("[onclick='toggleCalendar()']")) {
+    S.calOpen = false;
+    renderCalendar();
+  }
+});
 
 // ── BLOCK COLLAPSE ───────────────────────────────────────────────────────────
 function isBlockCollapsed(si) {
   const key = S.wDate+"_"+si;
-  if (key in S.wCollapsed) return S.wCollapsed[key];
-  const sets = getSets(si);
-  return sets.length>0 && sets.every(s=>s.feel);
+  return S.wCollapsed[key] === true;
 }
 function toggleBlock(si) {
   const key = S.wDate+"_"+si;
