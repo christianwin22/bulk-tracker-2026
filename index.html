@@ -37,8 +37,8 @@ input[type=date]::-webkit-calendar-picker-indicator { opacity: 0.4; }
 button { -webkit-appearance: none; cursor: pointer; }
 
 /* ── MOBILE layout (default) ── */
-body { padding-bottom: 90px; }
-#app { width: 100%; }
+body { padding-bottom: 0; }
+#app { width: 100%; padding-bottom: 90px; }
 #nav {
   position: fixed; bottom: 0; left: 0; right: 0;
   background: rgba(255,255,255,0.96);
@@ -51,6 +51,16 @@ body { padding-bottom: 90px; }
 .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; padding: 4px 0; }
 .nav-icon { font-size: 20px; line-height: 1; }
 .nav-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; }
+
+/* FIXED DAY BAR + TIMER OVERLAY (workout tab only) */
+#daybar-fixed {
+  position: fixed; left: 0; right: 0; z-index: 95;
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+}
+#timer-overlay { position: fixed; left: 0; right: 0; z-index: 96; padding: 0 12px; }
 
 /* ── DESKTOP layout (≥ 640px) ── */
 @media (min-width: 640px) {
@@ -73,6 +83,7 @@ body { padding-bottom: 90px; }
   .nav-icon { font-size: 18px; }
   .nav-label { font-size: 13px; font-weight: 600; letter-spacing: 0; }
   #app { margin-left: 200px; max-width: 720px; padding: 0 24px; }
+  #daybar-fixed, #timer-overlay { left: 200px; }
 }
 
 /* CARDS */
@@ -114,6 +125,8 @@ body { padding-bottom: 90px; }
 </head>
 <body>
 <div id="app"></div>
+<div id="daybar-fixed" style="display:none;"></div>
+<div id="timer-overlay" style="display:none;"></div>
 <div id="nav" style="display:none;"></div>
 
 <script>
@@ -162,7 +175,7 @@ function defaultMeals() {
 
 let S = {
   tab:"workout", height:"172", weight:"—",
-  feelPicker:null,
+  feelPicker:null, wCollapsed:{},
   wDate:nearestSession(), wManual:null, wSel:{}, wOrder:{},
   wNums:{0:"1",1:"2",2:"3",3:"4"},
   wSets:{
@@ -271,16 +284,17 @@ function onTimerDone() {
 function fmtTime(s) { return Math.floor(s/60)+":"+(s%60).toString().padStart(2,"0"); }
 
 function renderTimerSection() {
-  const el = document.getElementById("timer-section");
+  const el = document.getElementById("timer-overlay");
   if (!el) return;
   const {visible, running, seconds, total, feel} = S.timer;
-  if (!visible) { el.innerHTML = ""; return; }
+  if (!visible || S.tab !== "workout") { el.style.display = "none"; el.innerHTML = ""; layoutBottomBars(); return; }
+  el.style.display = "block";
   const fc = FEEL_COLOR[feel] || "var(--acc)";
   const done = !running && total > 0 && seconds <= 0;
   const pct = total > 0 ? (seconds / total * 100) : 0;
   const urgent = running && seconds <= 10;
   el.innerHTML = `
-  <div class="card" style="margin-bottom:10px;border-color:${done?"var(--grn)":fc};">
+  <div class="card" style="margin-bottom:8px;border-color:${done?"var(--grn)":fc};box-shadow:0 -2px 16px rgba(0,0,0,.08);">
     <div style="padding:12px 14px 10px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
         <div>
@@ -298,6 +312,26 @@ function renderTimerSection() {
       </div>
     </div>
   </div>`;
+  layoutBottomBars();
+}
+
+// ── BOTTOM BAR LAYOUT (day bar + timer overlay stack above nav) ─────────────
+function layoutBottomBars() {
+  const nav = document.getElementById("nav");
+  const daybar = document.getElementById("daybar-fixed");
+  const timer = document.getElementById("timer-overlay");
+  const isDesktop = window.innerWidth >= 640;
+  const navH = (!isDesktop && nav && nav.style.display !== "none") ? nav.offsetHeight : 0;
+  let daybarH = 0;
+  if (daybar) {
+    daybar.style.bottom = navH + "px";
+    if (daybar.style.display !== "none") daybarH = daybar.offsetHeight;
+  }
+  if (timer) {
+    timer.style.bottom = (navH + daybarH) + "px";
+  }
+  const app = document.getElementById("app");
+  if (app) app.style.paddingBottom = (navH + daybarH + 16) + "px";
 }
 
 // ── SUPABASE ───────────────────────────────────────────────────────────────
@@ -594,9 +628,11 @@ function render() {
       (S.tab==="progress"  ? renderProgressTab()  : "")+
       `</div>`;
     renderNav();
+    renderDayBar();
     window.scrollTo(0,sy);
     renderSyncBadge();
     if (S.tab==="workout") renderTimerSection();
+    layoutBottomBars();
   } catch(e) {
     document.getElementById("app").innerHTML =
       `<div style="padding:32px 20px;font-family:monospace;font-size:13px;color:#ff3b30;background:#fff;min-height:100vh;">
@@ -640,71 +676,75 @@ function renderTopBar() {
 // ── WORKOUT TAB ────────────────────────────────────────────────────────────
 function renderWorkoutTab() {
   const wt = getWType(), slots = getSlots();
-  let tot=0, done=0;
-  slots.forEach((_,i)=>{const s=getSets(i);tot+=s.length;done+=s.filter(x=>x.feel).length;});
-  const pct = tot>0?Math.round(done/tot*100):0;
   const areas = slots.map(s=>s.area).join(" · ");
 
-  // Session chips: prev + today + next + calendar
-  const idx = SESSIONS.indexOf(S.wDate);
-  const prevDate = idx>0 ? SESSIONS[idx-1] : null;
-  const nextDate = idx>=0 && idx<SESSIONS.length-1 ? SESSIONS[idx+1] : null;
-  const hasSaved = !!S.sessions[S.wDate];
-
   return `
-  <!-- Header card -->
-  <div class="card" style="margin-bottom:10px;">
-    <div style="padding:12px 14px 6px;display:flex;justify-content:space-between;align-items:flex-start;">
-      <div>
-        <div style="font-size:16px;font-weight:700;color:var(--txt);">${fmtLong(S.wDate)} · Type ${wt}</div>
-        <div style="font-size:11px;color:var(--sub);margin-top:2px;">${areas}</div>
-      </div>
-      <div style="text-align:right;flex-shrink:0;margin-left:12px;">
-        <div style="font-size:18px;font-weight:700;color:var(--acc);line-height:1;" id="w-counter">${done}/${tot}</div>
-        <div style="font-size:10px;color:var(--sub);margin-top:1px;">sets done</div>
-      </div>
-    </div>
-    <div style="margin:4px 14px 4px;background:var(--border);border-radius:999px;height:4px;overflow:hidden;">
-      <div id="w-pbar" style="width:${pct}%;height:100%;background:var(--acc);border-radius:999px;transition:width .3s;"></div>
-    </div>
-    <div style="padding:4px 14px 10px;display:flex;justify-content:space-between;align-items:center;">
-      <span style="font-size:11px;color:var(--sub);">${pct}% complete</span>
-      <span id="w-saved-badge" class="badge" style="background:var(--grn-soft);color:var(--grn);${hasSaved?"":"display:none;"}">✓ Saved</span>
-    </div>
+  <!-- Session header (plain text, no card) -->
+  <div style="padding:2px 2px 12px;">
+    <div style="font-size:16px;font-weight:700;color:var(--txt);">${fmtLong(S.wDate)} · Type ${wt}</div>
+    <div style="font-size:11px;color:var(--sub);margin-top:2px;">${areas}</div>
   </div>
-
-  <!-- Session chips: prev + today + next + calendar -->
-  <div style="display:flex;gap:6px;align-items:stretch;margin-bottom:12px;">
-    <button onclick="${prevDate?`wDate('${prevDate}')`:'null'}" style="flex-shrink:0;background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${prevDate?1:0.3};pointer-events:${prevDate?"auto":"none"};">
-      <div style="font-size:9px;color:var(--faint);">◀ prev</div>
-      <div style="font-size:12px;font-weight:600;color:var(--sub);">${prevDate?dayAbbr(prevDate):"—"}</div>
-    </button>
-    <button onclick="" style="flex:1;background:var(--acc);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;cursor:default;">
-      <div style="font-size:9px;color:rgba(255,255,255,.65);">${S.wDate===SESSIONS[SESSIONS.indexOf(S.wDate)]?"today":fmtLong(S.wDate)}</div>
-      <div style="font-size:12px;font-weight:700;color:#fff;">${dayAbbr(S.wDate)}</div>
-    </button>
-    <button onclick="${nextDate?`wDate('${nextDate}')`:'null'}" style="flex-shrink:0;background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${nextDate?1:0.3};pointer-events:${nextDate?"auto":"none"};">
-      <div style="font-size:9px;color:var(--faint);">next ▶</div>
-      <div style="font-size:12px;font-weight:600;color:var(--sub);">${nextDate?dayAbbr(nextDate):"—"}</div>
-    </button>
-    <div style="position:relative;flex-shrink:0;">
-      <button onclick="document.getElementById('w-date-picker').focus();document.getElementById('w-date-picker').click();"
-        style="background:var(--card);border:0.5px solid var(--border);border-radius:10px;padding:7px 11px;font-size:13px;color:var(--sub);height:100%;display:flex;align-items:center;gap:3px;">
-        📅 <span style="font-size:10px;">▾</span>
-      </button>
-      <input type="date" id="w-date-picker" value="${S.wDate}" onchange="wDate(this.value)"
-        style="position:absolute;opacity:0;pointer-events:none;top:0;left:0;width:1px;height:1px;"/>
-    </div>
-  </div>
-
-  <!-- Timer section (inline, appears when feel is tapped) -->
-  <div id="timer-section"></div>
 
   <!-- Exercise cards -->
   <div id="w-cards" style="display:flex;flex-direction:column;gap:10px;">${renderCards_()}</div>
 
   <!-- Save -->
   <button id="w-save" onclick="wSave()" class="btn-full btn-acc" style="margin-top:14px;margin-bottom:16px;">Save Session</button>`;
+}
+
+// ── FIXED DAY BAR (prev/today/next + calendar, pinned above nav) ───────────
+function renderDayBar() {
+  const el = document.getElementById("daybar-fixed");
+  if (!el) return;
+  if (S.tab !== "workout") { el.style.display = "none"; return; }
+  el.style.display = "block";
+
+  const idx = SESSIONS.indexOf(S.wDate);
+  const prevDate = idx>0 ? SESSIONS[idx-1] : null;
+  const nextDate = idx>=0 && idx<SESSIONS.length-1 ? SESSIONS[idx+1] : null;
+  const start = SESSIONS[0], end = SESSIONS[SESSIONS.length-1];
+  const days = Math.round((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+  const fmt = d => new Date(d+"T00:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+  const rangeStr = `${fmt(start)} – ${fmt(end)} · ${days} days`;
+  const label = S.wDate===today ? "today" : fmtLong(S.wDate);
+
+  el.innerHTML = `
+    <div style="font-size:10px;color:var(--faint);text-align:center;padding-bottom:6px;">${rangeStr}</div>
+    <div style="display:flex;gap:6px;align-items:stretch;">
+      <button onclick="${prevDate?`wDate('${prevDate}')`:'null'}" style="flex-shrink:0;background:var(--bg);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${prevDate?1:0.3};pointer-events:${prevDate?"auto":"none"};">
+        <div style="font-size:9px;color:var(--faint);">◀ prev</div>
+        <div style="font-size:12px;font-weight:600;color:var(--sub);">${prevDate?dayAbbr(prevDate):"—"}</div>
+      </button>
+      <button onclick="" style="flex:1;background:var(--acc);border:none;border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;cursor:default;">
+        <div style="font-size:9px;color:rgba(255,255,255,.65);">${label}</div>
+        <div style="font-size:12px;font-weight:700;color:#fff;">${dayAbbr(S.wDate)}</div>
+      </button>
+      <button onclick="${nextDate?`wDate('${nextDate}')`:'null'}" style="flex-shrink:0;background:var(--bg);border:0.5px solid var(--border);border-radius:10px;padding:7px 12px;line-height:1.4;text-align:center;opacity:${nextDate?1:0.3};pointer-events:${nextDate?"auto":"none"};">
+        <div style="font-size:9px;color:var(--faint);">next ▶</div>
+        <div style="font-size:12px;font-weight:600;color:var(--sub);">${nextDate?dayAbbr(nextDate):"—"}</div>
+      </button>
+      <div style="position:relative;flex-shrink:0;">
+        <button onclick="document.getElementById('w-date-picker').focus();document.getElementById('w-date-picker').click();"
+          style="background:var(--bg);border:0.5px solid var(--border);border-radius:10px;padding:7px 11px;font-size:13px;color:var(--sub);height:100%;display:flex;align-items:center;gap:3px;">
+          📅 <span style="font-size:10px;">▾</span>
+        </button>
+        <input type="date" id="w-date-picker" value="${S.wDate}" onchange="wDate(this.value)"
+          style="position:absolute;opacity:0;pointer-events:none;top:0;left:0;width:1px;height:1px;"/>
+      </div>
+    </div>`;
+}
+
+// ── BLOCK COLLAPSE ───────────────────────────────────────────────────────────
+function isBlockCollapsed(si) {
+  const key = S.wDate+"_"+si;
+  if (key in S.wCollapsed) return S.wCollapsed[key];
+  const sets = getSets(si);
+  return sets.length>0 && sets.every(s=>s.feel);
+}
+function toggleBlock(si) {
+  const key = S.wDate+"_"+si;
+  S.wCollapsed[key] = !isBlockCollapsed(si);
+  renderCards();
 }
 
 function renderCards_() {
@@ -717,21 +757,27 @@ function renderCards_() {
     const ac = "var(--acc)";
     const allDone = sets.length > 0 && sets.every(s=>s.feel);
     const doneCnt = sets.filter(s=>s.feel).length;
+    const collapsed = isBlockCollapsed(si);
 
     return `
     <div class="card">
-      <!-- Block header -->
-      <div style="padding:9px 10px 8px;border-bottom:0.5px solid var(--border);">
-        <!-- Row 1: move buttons + area label centered + done indicator -->
-        <div style="display:flex;align-items:center;gap:4px;margin-bottom:6px;">
-          <div style="display:flex;flex-direction:column;flex-shrink:0;">
+      <!-- Block header (tap to collapse/expand) -->
+      <div onclick="toggleBlock(${si})" style="padding:9px 10px 8px;${collapsed?"":"border-bottom:0.5px solid var(--border);"}cursor:pointer;">
+        <!-- Row 1: move buttons + area label centered + done indicator + chevron -->
+        <div style="display:flex;align-items:center;gap:4px;">
+          <div style="display:flex;flex-direction:column;flex-shrink:0;" onclick="event.stopPropagation()">
             <button onclick="wMoveBlock(${dispIdx},-1)" style="background:none;border:none;padding:1px 4px;color:${dispIdx===0?"transparent":"var(--faint)"};font-size:11px;line-height:1;pointer-events:${dispIdx===0?"none":"auto"};">▲</button>
             <button onclick="wMoveBlock(${dispIdx},1)"  style="background:none;border:none;padding:1px 4px;color:${dispIdx===order.length-1?"transparent":"var(--faint)"};font-size:11px;line-height:1;pointer-events:${dispIdx===order.length-1?"none":"auto"};">▼</button>
           </div>
           <div style="flex:1;text-align:center;font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.09em;">${slot.area}</div>
           <div style="font-size:10px;font-weight:600;color:var(--faint);min-width:28px;text-align:right;">${doneCnt}/${sets.length}</div>
+          <span style="font-size:11px;color:var(--faint);transform:rotate(${collapsed?"-90deg":"0deg"});transition:transform .15s;display:inline-block;width:14px;text-align:center;">▾</span>
         </div>
-        <!-- Exercise picker -->
+      </div>
+
+      ${collapsed ? "" : `
+      <!-- Exercise picker -->
+      <div style="padding:0 10px 8px;">
         <div style="position:relative;">
           <select onchange="wEx(${si},parseInt(this.value))"
             style="width:100%;padding:8px 28px 8px 10px;border-radius:8px;border:0.5px solid ${oi===0?"var(--border)":ac+"66"};background:${oi===0?"var(--bg)":ac+"0f"};font-size:12px;font-weight:600;color:${oi===0?"var(--txt)":ac};outline:none;-webkit-appearance:none;appearance:none;cursor:pointer;">
@@ -784,6 +830,7 @@ function renderCards_() {
           }).join("")}
         </div>
       </div>
+      `}
     </div>`;
   }).join("");
 }
@@ -1014,7 +1061,10 @@ async function init() {
 }
 
 init();
-window.addEventListener("resize", () => { if (document.getElementById("nav").style.display !== "none") renderNav(); });
+window.addEventListener("resize", () => {
+  if (document.getElementById("nav").style.display !== "none") renderNav();
+  layoutBottomBars();
+});
 </script>
 </body>
 </html>
